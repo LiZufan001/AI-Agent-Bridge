@@ -12,5 +12,19 @@
     "rule": "personal-email",
     "file_sha256": "24f6c05fb363980146a397ff0f49cad1cecaa62e0ccdd4676c7398b7e7b1d3af",
     "reason": "Explicit reserved .invalid synthetic email in a regression of the scanner itself; one occurrence writes the synthetic input, one asserts output redaction. This is not an owner identity and does not exempt other paths, rules, values or future file bytes."
+  },
+  {
+    "path": "worker/test_privacy_scan_boundaries.py",
+    "line": 36,
+    "rule": "personal-email",
+    "file_sha256": "783bd1c8c3fd9ee885448e95c091e37b49dd3de2fbed057f67fa4257dc764350",
+    "reason": "Same reserved .invalid synthetic-email scanner regression after adding the GitHub noreply metadata regression; exact file bytes are separately bound so this does not widen the exception."
+  },
+  {
+    "path": "worker/test_privacy_scan_boundaries.py",
+    "line": 42,
+    "rule": "personal-email",
+    "file_sha256": "783bd1c8c3fd9ee885448e95c091e37b49dd3de2fbed057f67fa4257dc764350",
+    "reason": "Same reserved .invalid synthetic-email scanner regression after adding the GitHub noreply metadata regression; exact file bytes are separately bound so this does not widen the exception."
   }
 ]
