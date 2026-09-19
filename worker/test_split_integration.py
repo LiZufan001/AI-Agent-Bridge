@@ -39,6 +39,11 @@ class SplitIntegrationTests(unittest.TestCase):
         path.write_text(json.dumps(value));git(state,'add','.');git(state,'commit','-qm','state');git(state,'branch','-M','main');git(state,'push','-qu','origin','main')
         with patch.object(state_roots,'engine_root',return_value=engine):
             resolved=state_roots.resolve_state_root(state,for_write=True)
+            # Derive the persistence target from the canonical State root. On
+            # Windows, tempfile paths may have an 8.3 alias while resolve()
+            # returns the long spelling; mixing those representations would
+            # trip the store's deliberate lexical-containment check.
+            path=resolved/'projects/example/state.json'
             result=git_store.publish_cas(bridge_root=resolved,state_path=path,
                 expected=lambda current:current['generation']==6,already_applied=lambda current:False,
                 payload_builder=lambda current:{path:bridge_common.json_text({**current,'generation':7})},message='synthetic CAS')

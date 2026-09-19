@@ -17,6 +17,26 @@ import urllib.request
 import webbrowser
 
 
+def _configure_text_output() -> None:
+    """Keep human diagnostics printable on legacy Windows code pages."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, 'reconfigure', None)
+        if not callable(reconfigure):
+            continue
+        try:
+            reconfigure(errors='backslashreplace')
+        except (OSError, ValueError):
+            pass
+
+
+def _dashboard_child_env() -> dict[str, str]:
+    """Use a stable UTF-8 encoding for detached Dashboard service logs."""
+    env = os.environ.copy()
+    env['PYTHONIOENCODING'] = 'utf-8'
+    env['PYTHONUTF8'] = '1'
+    return env
+
+
 def probe(url: str) -> dict | None:
     try:
         with urllib.request.urlopen(url + '/api/service', timeout=2) as response:
@@ -26,6 +46,7 @@ def probe(url: str) -> dict | None:
 
 
 def main() -> int:
+    _configure_text_output()
     parser = argparse.ArgumentParser(description='Bridge 控制台日常运行管理')
     parser.add_argument('action', choices=['start', 'open', 'status', 'stop'])
     parser.add_argument('--state-root', '--bridge-root', dest='bridge_root', type=Path)
@@ -76,7 +97,10 @@ def main() -> int:
             argv.append('--allow-controls')
         options = {'creationflags': subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW} if os.name == 'nt' else {'start_new_session': True}
         with (logs / 'service.log').open('ab') as output:
-            process = subprocess.Popen(argv, cwd=root, stdin=subprocess.DEVNULL, stdout=output, stderr=output, **options)
+            process = subprocess.Popen(
+                argv, cwd=root, stdin=subprocess.DEVNULL, stdout=output, stderr=output,
+                env=_dashboard_child_env(), **options
+            )
         for _ in range(50):
             running = probe(url)
             if running:
