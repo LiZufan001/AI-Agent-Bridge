@@ -45,6 +45,11 @@ class ScanBoundaryTests(unittest.TestCase):
         self.assertEqual(report['publication_authorized'],False)
         self.assertEqual(report['finding_counts']['personal-email'],1)
         self.assertNotIn('unexplained_findings',report)
+    def test_github_noreply_email_is_public_safe(self):
+        raw=b'author Synthetic <12345+synthetic-user@users.noreply.github.com>\n'
+        findings=scan.inspect('.git/commit/synthetic',raw,mode='public',denied=set())
+        self.assertFalse(any(item['rule']=='personal-email' for item in findings),findings)
+
     def test_clean_scan_never_authorizes_release(self):
         result=self.cli(); self.assertEqual(result.returncode,0)
         report=json.loads(result.stdout)
