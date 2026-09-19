@@ -1,0 +1,7 @@
+{
+  "schema_version": 2,
+  "scope": "Content/history lint only. No release authorization.",
+  "identifier_policy": "Private identifier hashes can be dictionary-matched. Supply only an external private policy; never place it in Engine or CI.",
+  "allowlist_policy": "Exact path, line, rule, file-content SHA-256 and rationale are required. Owner-specific exceptions stay private. Public test exceptions may contain only independently reviewed synthetic inputs; they never grant release approval. Legacy match_sha256 fields are rejected.",
+  "diagnostics": "CLI outputs aggregate counts only. In-process detailed results remain private."
+}

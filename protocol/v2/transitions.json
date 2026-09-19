@@ -1,0 +1,218 @@
+{
+  "wire_protocol_version": 2,
+  "engineering_profile": "2.6",
+  "allowed_states": [
+    "COMMAND_READY",
+    "CODEX_RUNNING",
+    "REPORT_READY",
+    "FINALIZING",
+    "FINAL_REPORT_READY",
+    "HUMAN_REQUIRED",
+    "RECOVERY_REQUIRED",
+    "DONE",
+    "FAILED"
+  ],
+  "terminal_states": ["DONE", "FAILED"],
+  "canonical_transitions": [
+    {
+      "event": "supervisor.publish_command",
+      "actor": "SUPERVISOR",
+      "from": ["REPORT_READY"],
+      "to": "COMMAND_READY",
+      "generation_effect": "+1",
+      "guards": ["generation_matches", "latest_report_matches", "no_active_run"]
+    },
+    {
+      "event": "operator.repair_unclaimed_command",
+      "actor": "OPERATOR",
+      "from": ["COMMAND_READY"],
+      "to": "COMMAND_READY",
+      "generation_effect": "+1",
+      "guards": [
+        "canonical_command_is_exact_target",
+        "deterministic_command_contract_error",
+        "no_active_run",
+        "replacement_command_is_complete",
+        "replacement_based_on_report_matches",
+        "replacement_expected_generation_is_next",
+        "replacement_supersedes_exact_target",
+        "replacement_command_id_is_monotonic",
+        "canonical_snapshot_rechecked_before_CAS"
+      ],
+      "note": "Publishes one new append-only command and advances generation exactly once. It never claims, starts, reruns, reports, or enters recovery for the superseded command."
+    },
+    {
+      "event": "operator.adopt_staged_repair",
+      "actor": "OPERATOR",
+      "from": ["COMMAND_READY"],
+      "to": "COMMAND_READY",
+      "generation_effect": "+1",
+      "guards": [
+        "status_is_COMMAND_READY",
+        "active_run_is_null",
+        "canonical_latest_command_is_exact_target",
+        "target_has_no_report",
+        "staged_replacement_has_no_report",
+        "target_has_deterministic_contract_error",
+        "canonical_state_snapshot_sha_matches",
+        "target_command_sha256_matches",
+        "staged_replacement_exists_and_sha256_bytes_match",
+        "replacement_command_is_complete",
+        "replacement_command_id_is_monotonic",
+        "replacement_based_on_report_matches",
+        "replacement_expected_generation_is_next",
+        "replacement_supersedes_exact_target",
+        "supersedes_relation_is_acyclic_and_historical",
+        "no_existing_command_overwrite",
+        "canonical_snapshot_rechecked_before_CAS"
+      ],
+      "note": "Adopts one already-written immutable replacement by advancing only state.json through git_store.publish_cas. It never writes either command file, claims work, creates a run/lease/report/recovery record, or invokes an executor."
+    },
+    {
+      "event": "operator.withdraw_and_manual_start",
+      "actor": "OPERATOR",
+      "from": ["COMMAND_READY"],
+      "to": "CODEX_RUNNING",
+      "generation_effect": "+2 logical generations in one atomic commit",
+      "guards": [
+        "status_is_COMMAND_READY",
+        "active_run_is_null",
+        "canonical_latest_command_is_exact_target",
+        "target_command_source_is_manual_chatgpt",
+        "target_command_kind_is_EXECUTE",
+        "target_command_is_unclaimed_and_has_no_report",
+        "canonical_generation_matches",
+        "canonical_state_sha256_matches",
+        "target_command_sha256_matches",
+        "replacement_command_id_is_new_and_monotonic",
+        "replacement_based_on_report_matches_latest_report",
+        "replacement_expected_generation_is_publication_generation",
+        "replacement_command_schema_is_valid",
+        "replacement_withdraws_exact_target_without_supersedes_relation",
+        "withdrawal_record_is_immutable_and_not_a_report",
+        "canonical_snapshot_rechecked_before_CAS",
+        "real_execution_lease_created_by_manual_fast_lane"
+      ],
+      "note": "Owner withdrawal and replacement publication consume G -> G+1; the current human fast-lane executor claims the replacement and creates the real lease at G+2. The command, withdrawal record, and CODEX_RUNNING state are one Git CAS commit. It never exposes REPORT_READY, creates a report for the withdrawn command, rewrites the withdrawn command, or cancels a running lease."
+    },
+    {
+      "event": "supervisor.manual_supersede_command",
+      "actor": "SUPERVISOR",
+      "from": ["COMMAND_READY"],
+      "to": "COMMAND_READY",
+      "generation_effect": "+1",
+      "guards": [
+        "active_run_is_null",
+        "canonical_scheduled_execute_matches",
+        "latest_report_matches",
+        "new_manual_command_is_monotonic",
+        "supersedes_command_id_matches",
+        "cas_snapshot_matches"
+      ],
+      "note": "Queue-boundary replacement only; it never interrupts or claims the scheduled command."
+    },
+    {
+      "event": "worker.claim_command",
+      "actor": "WORKER",
+      "from": ["COMMAND_READY"],
+      "to": "CODEX_RUNNING",
+      "generation_effect": "+1",
+      "guards": ["canonical_command_matches", "expected_generation_matches", "no_active_run"]
+    },
+    {
+      "event": "worker.publish_report",
+      "actor": "WORKER",
+      "from": ["CODEX_RUNNING"],
+      "to": "REPORT_READY",
+      "generation_effect": "+1",
+      "guards": ["run_id_matches", "claimed_generation_matches", "non_final_command"]
+    },
+    {
+      "event": "supervisor.publish_finalizer",
+      "actor": "SUPERVISOR",
+      "from": ["REPORT_READY"],
+      "to": "FINALIZING",
+      "generation_effect": "+1",
+      "guards": ["generation_matches", "latest_report_matches", "mission_ready_for_finalization"]
+    },
+    {
+      "event": "worker.claim_finalizer",
+      "actor": "WORKER",
+      "from": ["FINALIZING"],
+      "to": "CODEX_RUNNING",
+      "generation_effect": "+1",
+      "guards": ["canonical_command_matches", "expected_generation_matches", "command_kind_finalize", "no_active_run"]
+    },
+    {
+      "event": "worker.publish_final_report",
+      "actor": "WORKER",
+      "from": ["CODEX_RUNNING"],
+      "to": "FINAL_REPORT_READY",
+      "generation_effect": "+1",
+      "guards": ["run_id_matches", "claimed_generation_matches", "strict_final_marker_valid"]
+    },
+    {
+      "event": "supervisor.accept_final_delivery",
+      "actor": "SUPERVISOR",
+      "from": ["FINAL_REPORT_READY"],
+      "to": "DONE",
+      "generation_effect": "CAS_UPDATE",
+      "guards": ["final_report_verified", "completion_delivery_verified"]
+    },
+    {
+      "event": "supervisor.pause_for_owner",
+      "actor": "SUPERVISOR",
+      "from": ["REPORT_READY"],
+      "to": "HUMAN_REQUIRED",
+      "generation_effect": "CAS_UPDATE",
+      "guards": ["genuine_owner_dependency", "owner_notification_handled"]
+    },
+    {
+      "event": "supervisor.resume_after_owner",
+      "actor": "SUPERVISOR",
+      "from": ["HUMAN_REQUIRED"],
+      "to": "COMMAND_READY",
+      "generation_effect": "+1",
+      "guards": ["matching_owner_evidence", "verification_or_verification_command_required", "generation_matches", "no_active_run"]
+    },
+    {
+      "event": "worker.require_recovery",
+      "actor": "WORKER",
+      "from": ["CODEX_RUNNING"],
+      "to": "RECOVERY_REQUIRED",
+      "generation_effect": "+1",
+      "guards": ["exact_interrupted_run_identity", "safe_reconciliation_not_possible"]
+    },
+    {
+      "event": "operator.resolve_recovery",
+      "actor": "OPERATOR",
+      "from": ["RECOVERY_REQUIRED"],
+      "to": "REPORT_READY",
+      "generation_effect": "+1",
+      "guards": [
+        "recovery_identity_matches",
+        "reviewed_pending_report_matches",
+        "report_integrity_matches",
+        "generation_matches",
+        "latest_command_matches",
+        "no_active_run",
+        "canonical_report_absent_or_identical"
+      ],
+      "note": "Publishes only the already interrupted run's reviewed evidence; it never launches or replays Codex."
+    },
+    {
+      "event": "manual.publish_and_claim",
+      "actor": "MANUAL_FAST_LANE",
+      "from": ["REPORT_READY", "COMMAND_READY"],
+      "to": "CODEX_RUNNING",
+      "generation_effect": "+2 logical generations in one atomic commit",
+      "guards": ["manual_start_allowed", "no_active_run", "generation_matches"]
+    }
+  ],
+  "non_canonical_owner_progress": {
+    "container_state": "HUMAN_REQUIRED",
+    "sequence": ["AWAITING_OWNER", "OWNER_IN_PROGRESS", "OWNER_REPORTED_DONE"],
+    "generation_effect": "none",
+    "note": "OWNER_IN_PROGRESS is owner-action evidence, never a top-level Bridge state."
+  }
+}

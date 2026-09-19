@@ -1,0 +1,7 @@
+interface:
+  display_name: "Bridge Manual"
+  short_description: "Safely run a manual ChatGPT→Codex Bridge command"
+  default_prompt: "Use $bridge-manual only when I explicitly invoke it for an existing AI-Agent-Bridge project. Claim the distributed lease before touching target files, then publish the final report and release the lease."
+
+policy:
+  allow_implicit_invocation: false

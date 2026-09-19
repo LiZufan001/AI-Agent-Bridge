@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "hosts": {
+    "SYNTHETIC-HOST": {
+      "allowed_workdir_roots": [
+        "X:/synthetic/products"
+      ],
+      "projects": {
+        "engine-maintenance": {
+          "enabled": false,
+          "repository": "example-owner/example-engine",
+          "workdir": "X:/synthetic/products/engine-maintenance",
+          "self_maintenance": {
+            "enabled": false,
+            "repository": "example-owner/example-engine",
+            "candidate_branch": "maintenance/example-change",
+            "bootstrap_base": "3333333333333333333333333333333333333333"
+          }
+        }
+      }
+    }
+  }
+}

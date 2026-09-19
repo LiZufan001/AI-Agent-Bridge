@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "scope": "Current shipped maintenance entry points only; not whole-runtime safety approval.",
+  "counts": {
+    "operator_callsites_reviewed": 1,
+    "unresolved_high_risk_operator_calls": 0
+  },
+  "operator_callsites": [
+    {
+      "source": "worker/self_maintenance.py",
+      "function": "_run_git",
+      "classification_after": "SAFE_BOUNDED",
+      "boundary": "run_maintenance_command; MaintenanceLimits; no direct subprocess call"
+    }
+  ]
+}

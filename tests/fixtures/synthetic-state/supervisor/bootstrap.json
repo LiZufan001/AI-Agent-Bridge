@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "repository": "example-owner/example-state",
+  "entrypoint": "SUPERVISOR_ENTRYPOINT.md",
+  "portfolio_config": "supervisor/portfolio.json",
+  "heartbeat": {
+    "issue_number": 1,
+    "comment_id": 10001,
+    "worker_id": "SYNTHETIC-HOST",
+    "heartbeat_interval_seconds": 120,
+    "ttl_seconds": 300,
+    "max_future_skew_seconds": 60
+  },
+  "staged_publication": {
+    "request_directory": "worker/staged-publications/requests",
+    "max_lifetime_seconds": 600,
+    "max_future_skew_seconds": 60
+  },
+  "execution_control": {
+    "repository": "example-owner/owner-control",
+    "branch": "main",
+    "path": "bridge-control/worker-execution.json",
+    "fail_closed_mode": "paused"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-agent-bridge.local/protocol/v2/command.schema.json",
+  "title": "AI-Agent-Bridge Protocol v2 command metadata",
+  "type": "object",
+  "required": ["command_id", "source", "based_on_report", "expected_generation", "kind"],
+  "properties": {
+    "command_id": {"type": "integer", "minimum": 1},
+    "source": {"enum": ["scheduled_chatgpt", "manual_chatgpt", "user_direct", "finalizer"]},
+    "based_on_report": {"type": "integer", "minimum": 0},
+    "expected_generation": {"type": "integer", "minimum": 1},
+    "kind": {"enum": ["EXECUTE", "FINALIZE"]},
+    "executor": {
+      "type": "object",
+      "required": ["model", "reasoning_effort"],
+      "properties": {
+        "model": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"},
+        "reasoning_effort": {"enum": ["none", "minimal", "low", "medium", "high", "xhigh", "max"]},
+        "service_tier": {
+          "enum": ["fast"],
+          "description": "Optional run-local OpenAI Fast request tier; server-served tier is not implied."
+        }
+      },
+      "additionalProperties": false
+    },
+    "manual_request_id": {"type": "string", "minLength": 1},
+    "supersedes_command_id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Append-only historical replacement relation. On operator.repair_unclaimed_command or operator.adopt_staged_repair it names the exact earlier, unclaimed invalid command being superseded; it does not assert execution, success, or failure of that command. It must not be self-referential, point to a future command, or form a cycle. Ordinary commands omit this field."
+    },
+    "withdraws_command_id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Append-only owner-withdrawal reference used by operator.withdraw_and_manual_start. It names the exact earlier command withdrawn before execution; it is not a supersede relation, must point to an earlier existing command, and must not be combined with supersedes_command_id."
+    }
+  },
+  "additionalProperties": false
+}

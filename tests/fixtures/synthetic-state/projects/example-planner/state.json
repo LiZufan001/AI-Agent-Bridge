@@ -1,0 +1,12 @@
+{
+  "protocol_version": 2,
+  "project_id": "example-planner",
+  "status": "REPORT_READY",
+  "generation": 0,
+  "latest_command": 0,
+  "latest_report": 0,
+  "last_reviewed_report": 0,
+  "active_run": null,
+  "finalized": false,
+  "human_required": false
+}

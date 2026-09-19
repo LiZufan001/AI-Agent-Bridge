@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-agent-bridge.local/protocol/v2/state.schema.json",
+  "title": "AI-Agent-Bridge Protocol v2 State",
+  "type": "object",
+  "required": [
+    "protocol_version",
+    "project_id",
+    "status",
+    "generation",
+    "latest_command",
+    "latest_report",
+    "last_reviewed_report",
+    "active_run"
+  ],
+  "properties": {
+    "protocol_version": {"const": 2},
+    "project_id": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9._-]+$"},
+    "status": {
+      "enum": [
+        "COMMAND_READY",
+        "CODEX_RUNNING",
+        "REPORT_READY",
+        "FINALIZING",
+        "FINAL_REPORT_READY",
+        "HUMAN_REQUIRED",
+        "RECOVERY_REQUIRED",
+        "DONE",
+        "FAILED"
+      ]
+    },
+    "generation": {"type": "integer", "minimum": 0},
+    "latest_command": {"type": "integer", "minimum": 0},
+    "latest_report": {"type": "integer", "minimum": 0},
+    "last_reviewed_report": {"type": "integer", "minimum": 0},
+    "active_run": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object",
+          "required": ["run_id", "command_id", "source", "claimed_generation"],
+          "properties": {
+            "run_id": {"type": "string", "minLength": 1},
+            "command_id": {"type": "integer", "minimum": 1},
+            "source": {"enum": ["scheduled_chatgpt", "manual_chatgpt", "user_direct", "finalizer"]},
+            "kind": {"enum": ["EXECUTE", "FINALIZE"]},
+            "based_on_report": {"type": "integer", "minimum": 0},
+            "base_generation": {"type": "integer", "minimum": 0},
+            "publication_generation": {"type": "integer", "minimum": 0},
+            "claimed_generation": {"type": "integer", "minimum": 0},
+            "claimed_at": {"type": "string", "minLength": 1},
+            "lease_expires_at": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "finalized": {"type": "boolean"},
+    "human_required": {"type": "boolean"},
+    "updated_at": {"type": "string"},
+    "worker_host": {"type": ["string", "null"]},
+    "worker_pid": {"type": ["integer", "null"], "minimum": 0},
+    "recovery_note": {"type": "object"},
+    "withdrawn_commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "command_id",
+          "source",
+          "kind",
+          "command_sha256",
+          "reason",
+          "withdrawn_at",
+          "replacement_command_id",
+          "resolution"
+        ],
+        "properties": {
+          "command_id": {"type": "integer", "minimum": 1},
+          "source": {"enum": ["scheduled_chatgpt", "manual_chatgpt", "user_direct", "finalizer"]},
+          "kind": {"enum": ["EXECUTE", "FINALIZE"]},
+          "command_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "reason": {"type": "string", "minLength": 1, "maxLength": 512},
+          "withdrawn_at": {"type": "string", "minLength": 1},
+          "replacement_command_id": {"type": "integer", "minimum": 1},
+          "resolution": {"const": "owner_withdrew_unclaimed_command_before_execution"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": true,
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "CODEX_RUNNING"}}, "required": ["status"]},
+      "then": {"properties": {"active_run": {"type": "object"}}}
+    },
+    {
+      "if": {"properties": {"status": {"not": {"const": "CODEX_RUNNING"}}}, "required": ["status"]},
+      "then": {"properties": {"active_run": {"type": "null"}}}
+    }
+  ]
+}

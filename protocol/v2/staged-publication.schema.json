@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/bridge/protocol/v2/staged-publication.schema.json",
+  "title": "AI-Agent-Bridge staged Supervisor publication request",
+  "description": "Non-canonical Git transport envelope. The local Windows Worker validates command_content as exact UTF-8 bytes before publishing canonical command and state files. Runtime eligibility is additionally bounded by supervisor/bootstrap.json: the gateway uses the tracked request path's Git committer timestamp, never checkout mtime, and refuses an immutable staged request after 600 seconds or when its commit time is implausibly in the future.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "request_id",
+    "project_id",
+    "command_id",
+    "source",
+    "kind",
+    "based_on_report",
+    "expected_generation",
+    "command_sha256",
+    "command_content",
+    "created_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "request_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "project_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+    },
+    "command_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "scheduled_chatgpt",
+        "finalizer"
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "EXECUTE",
+        "FINALIZE"
+      ]
+    },
+    "based_on_report": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "expected_generation": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "command_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "command_content": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 524288,
+      "description": "The complete final command text before canonical publication; hash its UTF-8 encoding, not a normalized or reconstructed command."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "portfolio_pass_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/ -]{0,127}$"
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "source": {
+          "const": "scheduled_chatgpt"
+        },
+        "kind": {
+          "const": "EXECUTE"
+        }
+      }
+    },
+    {
+      "properties": {
+        "source": {
+          "const": "finalizer"
+        },
+        "kind": {
+          "const": "FINALIZE"
+        }
+      }
+    }
+  ]
+}

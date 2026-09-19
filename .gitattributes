@@ -1,0 +1,2 @@
+* -text
+# Preserve exact snapshot/evidence bytes across platforms; do not normalize historical files.

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "hosts": {
+    "SYNTHETIC-HOST": {
+      "allowed_workdir_roots": [
+        "X:/synthetic/products"
+      ],
+      "projects": {
+        "example-app": {
+          "enabled": false,
+          "repository": "example-owner/example-app",
+          "workdir": "X:/synthetic/products/example-app"
+        }
+      }
+    }
+  }
+}

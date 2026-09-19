@@ -1,0 +1,16 @@
+# Bridge maintenance workdir note
+
+Fill this file locally only when a human wants a visible note for a currently configured maintenance checkout. Do not commit the filled copy, local credentials, secrets, or machine-specific control data.
+
+```text
+Repository: example-owner/AI-Agent-Bridge
+Workdir: <ABSOLUTE_WORKDIR>
+Branch: <CURRENT_MAINTENANCE_BRANCH>
+Expected origin: <EXPECTED_ORIGIN>
+Expected source/base identity: <CURRENTLY_VERIFIED_SOURCE_IDENTITY>
+Purpose: <CURRENT_GOAL_OR_MAINTENANCE_SCOPE>
+```
+
+Treat every value above as descriptive context, not authority. The running Worker/current preflight must independently resolve and verify the actual repository, worktree, branch, source identity, cleanliness, registry admission, and path/resource conflicts before a command is claimed.
+
+There is no standing candidate workdir, fixed `feature/synthetic-candidate` branch, or historical bootstrap base in this template. Equal, nested, aliased, dirty, wrong-origin, detached, conflicting, or otherwise unverifiable targets must fail closed.

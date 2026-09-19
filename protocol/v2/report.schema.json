@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-agent-bridge.local/protocol/v2/report.schema.json",
+  "title": "AI-Agent-Bridge Protocol v2 normalized report metadata",
+  "description": "Contract for normalized machine-readable report header fields. Historical report bodies remain Markdown and append-only.",
+  "type": "object",
+  "required": ["command_id", "outcome", "source", "based_on_report", "run_id", "claim_generation"],
+  "properties": {
+    "command_id": {"type": "integer", "minimum": 1},
+    "outcome": {"enum": ["SUCCESS", "PARTIAL", "FAILED", "BLOCKED"]},
+    "source": {"enum": ["scheduled_chatgpt", "manual_chatgpt", "user_direct", "finalizer"]},
+    "based_on_report": {"type": "integer", "minimum": 0},
+    "run_id": {"type": "string", "minLength": 1},
+    "claim_generation": {"type": "integer", "minimum": 1},
+    "completed_at": {"type": "string"},
+    "executor_profile_source": {"enum": ["worker_default", "command_override", "manual_session"]},
+    "requested_model": {"type": "string"},
+    "requested_reasoning_effort": {"type": "string"},
+    "effective_cli_model": {"type": "string"},
+    "effective_cli_reasoning_effort": {"type": "string"},
+    "requested_service_tier": {"type": "string"},
+    "effective_cli_service_tier": {"type": "string"},
+    "service_tier_observation": {"type": "string"}
+  },
+  "additionalProperties": true
+}

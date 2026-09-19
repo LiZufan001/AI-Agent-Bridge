@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/bridge/supervisor/schemas/bootstrap.schema.json",
+  "title": "Scheduled Supervisor bootstrap configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "repository",
+    "entrypoint",
+    "portfolio_config",
+    "heartbeat",
+    "staged_publication",
+    "execution_control"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "entrypoint": {
+      "const": "SUPERVISOR_ENTRYPOINT.md"
+    },
+    "portfolio_config": {
+      "const": "supervisor/portfolio.json"
+    },
+    "heartbeat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "issue_number",
+        "comment_id",
+        "worker_id",
+        "heartbeat_interval_seconds",
+        "ttl_seconds",
+        "max_future_skew_seconds"
+      ],
+      "properties": {
+        "issue_number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "comment_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "worker_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "heartbeat_interval_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 3600
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 7200
+        },
+        "max_future_skew_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 300
+        }
+      }
+    },
+    "staged_publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_directory",
+        "max_lifetime_seconds",
+        "max_future_skew_seconds"
+      ],
+      "properties": {
+        "request_directory": {
+          "const": "worker/staged-publications/requests"
+        },
+        "max_lifetime_seconds": {
+          "type": "integer",
+          "minimum": 60,
+          "maximum": 3600
+        },
+        "max_future_skew_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 300
+        }
+      }
+    },
+    "execution_control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "branch",
+        "path",
+        "fail_closed_mode"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "fail_closed_mode": {
+          "const": "paused"
+        }
+      }
+    },
+    "heartbeat_repository": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    },
+    "engine_repository": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+    }
+  }
+}

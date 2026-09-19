@@ -1,0 +1,45 @@
+{
+  "runtime": {
+    "max_parallel_runs": 1
+  },
+  "adoption": {
+    "controlled_adoption_enabled": false,
+    "unattended_adoption_enabled": false
+  },
+  "poll_seconds": 30,
+  "codex_command": "codex",
+  "codex_execution_mode": "disabled",
+  "codex_args": [
+    "exec",
+    "--ephemeral"
+  ],
+  "codex_timeout_seconds": 14400,
+  "codex_final_grace_seconds": 20,
+  "codex_cleanup_timeout_seconds": 10,
+  "codex_final_marker_stable_seconds": 0.5,
+  "codex_lifecycle_poll_seconds": 0.1,
+  "codex_log_warning_bytes": 10485760,
+  "codex_max_final_message_bytes": 2097152,
+  "codex_log_retention_runs": 20,
+  "lease_grace_seconds": 900,
+  "alerts": {
+    "enabled": false,
+    "env_path": "",
+    "smtp_timeout_seconds": 8
+  },
+  "remote_projects_file": "worker/remote-projects.json",
+  "allowed_workdir_roots": [],
+  "network_guard": {
+    "enabled": false,
+    "probe_url": "",
+    "timeout_seconds": 5,
+    "watchdog_interval_seconds": 10,
+    "blocked_country_codes": [],
+    "fail_closed": true
+  },
+  "egress_containment": {
+    "enabled": false,
+    "mode": "disabled"
+  },
+  "projects": {}
+}

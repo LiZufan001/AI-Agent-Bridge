@@ -1,0 +1,12 @@
+{
+  "protocol_version": 2,
+  "project_id": "engine-maintenance",
+  "status": "REPORT_READY",
+  "generation": 6,
+  "latest_command": 2,
+  "latest_report": 2,
+  "last_reviewed_report": 2,
+  "active_run": null,
+  "finalized": false,
+  "human_required": false
+}

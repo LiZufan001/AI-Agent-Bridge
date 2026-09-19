@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+worker/runtime/
+worker/logs/
+worker/*.local.json
+engine.local.json
+artifacts/
+.env
+.env.*
+!.env.example

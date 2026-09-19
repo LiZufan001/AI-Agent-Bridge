@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Bridge · 本地运维控制台</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
+<body>
+<aside class="sidebar">
+  <a class="brand" href="/" aria-label="Bridge 首页"><span class="brand-mark">⌘</span><span>Bridge<small>AI AGENT OPERATIONS</small></span></a>
+  <div class="workspace"><span class="host-dot"></span>本地工作空间<span class="local-tag">LOCAL</span></div>
+  <div class="nav-label">工作台</div><button class="nav-item selected" id="nav-overview"><span>◫</span>运行概览<span class="nav-key">01</span></button><button class="nav-item" id="nav-attention"><span>◈</span>需要关注<span class="nav-count" id="nav-count">—</span></button>
+  <div class="nav-label project-nav-label">Owner 项目<span id="side-count">—</span></div><nav id="project-nav" aria-label="项目列表"></nav>
+  <div class="sidebar-bottom"><span class="mini-label">权威协议</span><strong>Protocol v2 <span class="quiet-dot"></span></strong><p>一条指令 · 一次运行 · 一份结果</p><div id="control-mode">正在连接本地服务</div></div>
+</aside>
+<div class="shell">
+<header class="topbar"><div><span class="crumb">工作台</span><span class="slash">/</span><span id="page-crumb">运行概览</span></div><div class="connection"><span class="dot" id="connection-dot"></span><span id="connection">正在连接</span><span class="separator"></span><time id="clock">—</time><button class="icon-button" id="refresh" title="立即刷新" aria-label="立即刷新">↻</button></div></header>
+<main>
+<div class="page-heading"><div><div class="eyebrow">工作空间 / 实时运行</div><h1>运行概览<span class="live-label">LIVE</span></h1><p>运行、等待与异常，集中在一个工作空间。</p></div><div class="snapshot-note">本地证据持续同步<small id="generated">等待首份快照</small></div></div>
+<div id="offline-banner" class="offline-banner" role="status" hidden></div>
+<section class="health-ribbon" aria-label="整体健康"><div class="health-summary"><span class="health-symbol" id="health-symbol">◌</span><div><span class="mini-label">BRIDGE 运行状态</span><h2 id="overall">正在读取证据</h2><p id="overall-detail">正在确认心跳和任务租约</p></div></div><div class="component"><div><span class="mini-label">Worker</span><span class="badge" id="worker-status">待确认</span></div><strong id="worker-age">—</strong><small id="worker-extra">—</small></div><div class="component"><div><span class="mini-label">Coordinator</span><span class="badge" id="coordinator-status">待确认</span></div><strong id="coordinator-age">—</strong><small id="coordinator-extra">—</small></div><div class="component"><div><span class="mini-label">Launcher</span><span class="badge" id="launcher-status">待确认</span></div><strong id="launcher-age">—</strong><small id="launcher-extra">—</small></div></section>
+<section class="metrics" aria-label="资源与项目"><div><span>执行中的 Codex</span><strong id="metric-active">—</strong><small id="metric-active-note">以有效运行证据为准</small></div><div><span>资源槽位</span><strong id="metric-slots">—</strong><div class="slot-track" id="slot-track"></div></div><div><span>等待与排队</span><strong id="metric-waiting">—</strong><small>等待指令、复核或资源</small></div><div><span>需要处理</span><strong id="metric-attention">—</strong><small id="metric-attention-note">失败、阻塞或证据异常</small></div><div><span>已暂停项目</span><strong id="metric-paused">—</strong><small>保留已开始的运行</small></div></section>
+<div class="content-grid"><div class="primary-column">
+<section class="section active-section"><div class="section-title"><h2>正在执行 <span id="active-count" class="count">0</span></h2><span class="subtle">选择运行，查看实时工作情况</span></div><div id="active-runs" class="active-runs"><div class="empty-state">正在读取 active runs…</div></div></section>
+<section class="section"><div class="section-title"><h2>项目进程 <span id="project-count" class="count">—</span></h2><div class="filters" aria-label="项目筛选"><button data-filter="all" class="active">全部</button><button data-filter="attention">需关注</button><button data-filter="paused">已暂停</button></div></div><div class="project-list-heading"><span>项目 / 当前阶段</span><span>最近结果 / 运行配置</span><span>指令 · 报告</span></div><div id="project-list"></div></section>
+<section class="section recent-section"><div class="section-title"><h2>最近完成</h2><span class="subtle">来自已发布报告</span></div><div id="recent-results"></div></section>
+</div>
+<aside class="inspector" id="inspector" aria-label="项目详情"><div class="section-title"><h2 id="inspector-title">需要关注</h2><button id="close-detail" class="icon-button" title="返回关注列表" aria-label="返回关注列表" hidden>×</button></div><div id="inspector-content"></div></aside></div>
+<footer><span><span class="quiet-dot"></span>状态来自 Protocol v2 与本地运行证据</span><span>刷新间隔 3 秒 <span class="slash">/</span> 所有操作由现有 Bridge 机制执行</span></footer>
+</main></div>
+<dialog id="confirm-dialog"><form method="dialog"><div class="eyebrow">OWNER 操作</div><h2 id="confirm-title"></h2><p id="confirm-description"></p><div class="dialog-actions"><button value="cancel" class="button">取消</button><button value="confirm" class="button primary" id="confirm-button">确认</button></div></form></dialog><div class="toast" id="toast" role="status" hidden></div>
+</body></html>

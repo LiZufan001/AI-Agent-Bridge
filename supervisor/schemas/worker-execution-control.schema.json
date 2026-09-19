@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/bridge/supervisor/schemas/worker-execution-control.schema.json",
+  "title": "Owner-controlled Worker execution mode",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "execution_mode",
+    "reason",
+    "set_by",
+    "set_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "execution_mode": {
+      "enum": [
+        "auto",
+        "paused"
+      ]
+    },
+    "reason": {
+      "enum": [
+        "owner_resume",
+        "owner_quota_saving",
+        "owner_manual_pause"
+      ]
+    },
+    "set_by": {
+      "const": "owner"
+    },
+    "set_at": {
+      "type": "string",
+      "format": "date-time",
+      "minLength": 20,
+      "maxLength": 64
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "execution_mode": {
+            "const": "auto"
+          }
+        },
+        "required": [
+          "execution_mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "const": "owner_resume"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution_mode": {
+            "const": "paused"
+          }
+        },
+        "required": [
+          "execution_mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "reason": {
+            "enum": [
+              "owner_quota_saving",
+              "owner_manual_pause"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

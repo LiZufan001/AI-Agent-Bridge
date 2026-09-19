@@ -1,0 +1,3 @@
+worker/runtime/
+worker/logs/
+worker/*.local.json

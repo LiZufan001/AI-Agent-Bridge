@@ -1,0 +1,43 @@
+name: Synthetic regression and content lint (not release approval)
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: engine-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  synthetic:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5, pinned
+        with:
+          python-version: '3.13'
+      - name: Architecture gate
+        run: python -B worker/architecture_gate.py
+      - name: Type gate
+        run: python -B worker/type_gate.py
+      - name: Operator safety gate
+        run: python -B worker/operator_safety_gate.py
+      - name: Synthetic Protocol
+        run: python -B protocol/v2/check_conformance.py
+      - name: Complete synthetic State structure
+        run: python -B tools/validate_state.py --state-root tests/fixtures/synthetic-state
+      - name: Synthetic loopback HTTP
+        run: python -B tools/sidecar_smoke.py --output ../synthetic-http.json
+      - name: Worker, Dashboard, CAS, publication, recovery and maintenance regression
+        run: python -B tools/check_test_isolation.py --output ../worker-tests.json
+      - name: Public content and reachable history
+        run: python -B tools/privacy_scan.py --root . --history --allowlist tools/public-test-exceptions.json --json ../privacy.json --report ../privacy.md
+      # Raw test/sidecar diagnostics are not publication-safe evidence.
+      # No artifact upload or repository write is performed by this workflow.

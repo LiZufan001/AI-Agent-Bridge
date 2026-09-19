@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-agent-bridge.local/protocol/v2/owner-action.schema.json",
+  "title": "AI-Agent-Bridge Protocol v2 normalized owner-action event",
+  "type": "object",
+  "required": ["action_id", "owner_status", "verification_status"],
+  "properties": {
+    "action_id": {"type": "string", "pattern": "^owner-action-[0-9]+$"},
+    "root_action_id": {"type": "string", "pattern": "^owner-action-[0-9]+$"},
+    "relates_to": {"type": ["string", "null"], "pattern": "^owner-action-[0-9]+$"},
+    "blocker_key": {"type": "string", "minLength": 1},
+    "owner_status": {
+      "enum": ["AWAITING_OWNER", "OWNER_IN_PROGRESS", "OWNER_REPORTED_DONE"]
+    },
+    "verification_status": {
+      "enum": ["PENDING", "VERIFIED", "FAILED"]
+    },
+    "verification_source": {"type": ["string", "null"]},
+    "requested_at": {"type": ["string", "null"]},
+    "recorded_at": {"type": ["string", "null"]},
+    "reported_at": {"type": ["string", "null"]},
+    "verified_at": {"type": ["string", "null"]},
+    "evidence_summary": {"type": "string"}
+  },
+  "additionalProperties": true,
+  "allOf": [
+    {
+      "if": {"properties": {"owner_status": {"const": "OWNER_IN_PROGRESS"}}, "required": ["owner_status"]},
+      "then": {"properties": {"verification_status": {"const": "PENDING"}}}
+    }
+  ]
+}

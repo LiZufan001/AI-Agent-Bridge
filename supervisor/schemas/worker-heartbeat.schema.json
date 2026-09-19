@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/bridge/supervisor/schemas/worker-heartbeat.schema.json",
+  "title": "External Bridge Worker availability heartbeat payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "worker_id",
+    "last_seen_at",
+    "heartbeat_interval_seconds",
+    "ttl_seconds"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "worker_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "last_seen_at": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "heartbeat_interval_seconds": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 3600
+    },
+    "ttl_seconds": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 7200
+    }
+  }
+}
