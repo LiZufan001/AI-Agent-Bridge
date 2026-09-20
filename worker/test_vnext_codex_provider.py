@@ -139,8 +139,11 @@ class CodexProviderTests(unittest.TestCase):
         self.assertNotIn(executor.FULL_ACCESS_FLAG, args)
         self.assertNotIn("--sandbox", args)
         self.assertIn('approval_policy="never"', args)
+        self.assertIn("--ignore-user-config", args)
+        self.assertIn("--ignore-rules", args)
+        self.assertIn('windows.sandbox="elevated"', args)
         self.assertIn(
-            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.":root"="read"',
+            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem={{":root"="read"}}',
             args,
         )
 
