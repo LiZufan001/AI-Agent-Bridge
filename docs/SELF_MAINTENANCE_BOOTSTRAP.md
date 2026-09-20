@@ -9,10 +9,3 @@ The candidate-generation workflow is an unattended Codex run inside the Candidat
 The source package proves run-local policy selection and fail-closed argv construction, but actual native-Windows `:workspace` enforcement still needs host acceptance before this phase is treated as production-complete. No fallback to full access is permitted for a self-maintenance run. System TEMP write access is intentional disposable scratch, not a failure condition. Direct production reads and network access are intentionally outside the maintenance-Agent acceptance contract. Protected Candidate `.git` remains outside the maintenance Agent's mutation authority, so production reads, Git operations and deployment stay with the trusted outer authority. Ordinary non-maintenance projects retain their existing full-access execution model.
 
 Engine rollback with the same compatible State schema must preserve canonical State and local recovery evidence. Rollback to an old combined repository is different: after any canonical mutation, stale combined-repository State is not a lossless rollback target. Never copy State backward or rewind generation automatically.
-
-## Controlled adoption evidence checklist
-
-- Before adoption, record the independent Candidate/base identity, accepted Candidate SHA, current main and known-good SHA, the fixed canonical State binding, completed drain with no active runs, and the rollback/restart evidence location.
-- During probation, verify the replacement Worker identity and terminal handoff result. On failure, preserve the same State and use a forward rollback.
-- After rollback, a fresh adoption must use rollback main as its base, a new independent Candidate, and a new attempt/command identity.
-- Unattended adoption remains disabled.
