@@ -90,7 +90,8 @@ def _is_terminal_archive(
     )
 
 
-def validate_state(root: Path, *, require_quiescent: bool=False, include_runtime: bool=False) -> dict:
+def validate_state(root: Path, *, require_quiescent: bool=False, include_runtime: bool=False,
+                   archive_review: Path | None=None) -> dict:
     root = state_roots.resolve_state_root(root)
     errors=[];warnings=[];states=[];runtime_blockers=[]
     def check_file(relative: str, schema_relative: str):
@@ -183,7 +184,23 @@ def validate_state(root: Path, *, require_quiescent: bool=False, include_runtime
         if not include_runtime:
             errors.append('quiescence requires explicit --include-runtime')
     try:
-        privacy=privacy_scan.audit(root,mode='private')
+        entries=None
+        if archive_review is not None:
+            # Only an explicit outer-operator input can acknowledge immutable
+            # historical binary archives. Never discover policy in Candidate
+            # configuration or let this option suppress credential findings.
+            entries=privacy_scan._read_json(archive_review)
+            if not isinstance(entries,list) or any(
+                not isinstance(entry,dict)
+                or entry.get('rule')!='binary-unreviewed-file'
+                or entry.get('line')!=0
+                or not isinstance(entry.get('path'),str)
+                or not entry['path'].startswith('migration/')
+                or '..' in entry['path'].split('/')
+                for entry in entries
+            ):
+                raise ValueError('archive review must bind only migration binaries')
+        privacy=privacy_scan.audit(root,mode='private',allowlist_entries=entries)
         if not privacy['pass']:
             errors.append('tracked secret-value/local-config audit failed')
     except (OSError,ValueError,subprocess.SubprocessError) as exc:
@@ -209,9 +226,12 @@ def main() -> int:
     p.add_argument('--output',type=Path)
     p.add_argument('--include-runtime',action='store_true')
     p.add_argument('--require-quiescent',action='store_true')
+    p.add_argument('--archive-review',type=Path,
+                   help='Explicit operator-reviewed exact migration binary exceptions; credentials are never exempted.')
     a=p.parse_args()
     try:
-        result=validate_state(a.state_root.resolve(),require_quiescent=a.require_quiescent,include_runtime=a.include_runtime)
+        result=validate_state(a.state_root.resolve(),require_quiescent=a.require_quiescent,
+                              include_runtime=a.include_runtime,archive_review=a.archive_review)
     except (OSError,ValueError,RuntimeError) as exc:
         result={'pass':False,'errors':[str(exc)]}
     text=json.dumps(result,indent=2,ensure_ascii=False)+'\n'

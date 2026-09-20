@@ -64,6 +64,36 @@ class SplitIntegrationTests(unittest.TestCase):
         self.assertTrue(result['pass'],result['errors'])
         (state/'projects/engine-maintenance/CURRENT_GOAL.md').write_text('invalid pointer\n')
         self.assertFalse(validate_state.validate_state(state)['pass'])
+    def test_exact_operator_archive_review_preserves_history_and_fails_on_drift(self):
+        state=self.base/'state';shutil.copytree(state_roots.fixture_root(),state)
+        archive=state/'migration/reviewed-evidence.tar.xz'
+        archive.parent.mkdir();archive.write_bytes(b'\xfd7zXZ\x00synthetic reviewed archive')
+        policy=self.base/'operator-review.json'
+        entry={'path':'migration/reviewed-evidence.tar.xz','line':0,
+               'rule':'binary-unreviewed-file','file_sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),
+               'reason':'Synthetic immutable archive independently reviewed by operator.'}
+        policy.write_text(json.dumps([entry]))
+        before=archive.read_bytes()
+        self.assertFalse(validate_state.validate_state(state)['pass'])
+        with patch.object(validate_state.privacy_scan,'_read_json',
+                          wraps=validate_state.privacy_scan._read_json) as read_policy:
+            accepted=validate_state.validate_state(state,archive_review=policy)
+            self.assertEqual(read_policy.call_count,1)
+        self.assertTrue(accepted['pass'],accepted['errors'])
+        self.assertEqual(archive.read_bytes(),before)
+        self.assertEqual(len(accepted['privacy']['explained_findings']),1)
+        archive.write_bytes(before+b'changed')
+        self.assertFalse(validate_state.validate_state(state,archive_review=policy)['pass'])
+    def test_archive_review_cannot_exempt_credentials_or_non_migration_paths(self):
+        state=self.base/'state';shutil.copytree(state_roots.fixture_root(),state)
+        policy=self.base/'operator-review.json'
+        for path,rule in [('migration/reviewed.bin','credential-value'),
+                          ('projects/reviewed.bin','binary-unreviewed-file'),
+                          ('migration/../projects/reviewed.bin','binary-unreviewed-file')]:
+            with self.subTest(path=path,rule=rule):
+                policy.write_text(json.dumps([{'path':path,'line':0,'rule':rule,
+                    'file_sha256':'0'*64,'reason':'Synthetic invalid exception.'}]))
+                self.assertFalse(validate_state.validate_state(state,archive_review=policy)['pass'])
     def _add_terminal_archive_with_blocker_correction(self, state: Path) -> str:
         pid='historical-release'
         project=state/'projects'/pid

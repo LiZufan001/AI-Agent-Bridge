@@ -172,11 +172,15 @@ def inspect(path: str, raw: bytes, *, mode: str, denied: set[str]) -> list[dict]
 
 def audit(root: Path, *, mode: str='public', tree: bool=False, history: bool=False,
           require_clean_history: bool=False, allowlist: Path | None=None,
-          identifier_policy: Path | None=None) -> dict:
+          identifier_policy: Path | None=None, allowlist_entries: list[dict] | None=None) -> dict:
     denied=_load_identifier_policy(identifier_policy)
     entries=[]
-    if allowlist is not None:
-        entries=_read_json(allowlist)
+    if allowlist is not None and allowlist_entries is not None:
+        raise ValueError('provide only one exception policy input')
+    if allowlist is not None or allowlist_entries is not None:
+        # Internal callers may constrain a once-read policy before applying it.
+        # Reopening the file here could apply different rules than they checked.
+        entries=_read_json(allowlist) if allowlist is not None else allowlist_entries
         if not isinstance(entries,list):raise ValueError('allowlist must be a list')
         for entry in entries:
             if (not isinstance(entry, dict)

@@ -34,6 +34,18 @@ Self-maintenance commands and reports remain State data. Candidate Engine branch
 Engine CI uses only temporary/synthetic State. State validation imports the independently accepted Engine implementation by a full commit SHA; State contains no implementation copy. Schema/interface version is 1 over unchanged Protocol v2. No canonical State schema migration is performed in this package. Future schema changes require a separately reviewed compatibility plan and exact pre-change snapshot.
 
 Default test fixtures contain invented project identities and local Git remotes. Credentials and private network endpoints are never needed for the default regression suite. Windows-specific containment/Task Scheduler integration still requires Windows acceptance; Linux skips are not Windows evidence.
+## Reviewed private audit archives
+
+Private State may retain reviewed binary archives under `migration/` as immutable
+audit history. The State validator rejects these by default. After independently
+reviewing their contents, an outer operator can explicitly pass `--archive-review`
+with exact privacy-scanner entries binding path, line, rule, file SHA-256 and a
+review reason. Only `binary-unreviewed-file` findings under `migration/` may be
+acknowledged; credential findings cannot be exempted. A changed archive or unused
+exception still fails validation. Keep the review policy in private operator/State
+storage, outside Public Engine and Candidate authority. Do not delete audit
+archives or rewrite their bytes to obtain a passing check.
+
 ## Terminal historical State validation
 
 The split does not rewrite append-only Owner evidence merely to satisfy newer operational projection rules. `tools/validate_state.py` therefore distinguishes current execution authority from archival evidence without adding a Protocol state. A project may use archival validation only when all of these are true at the same State snapshot: its canonical status is a Protocol terminal state (`DONE` or `FAILED`), `active_run` is null, the project is explicitly disabled in every configured host registry entry, and it is not Owner-selected in the portfolio. Missing registry evidence does **not** count as disabled.
