@@ -207,6 +207,7 @@ class LauncherActionConfig:
     worker_script: Path
     config_path: Path
     log_file: Path
+    state_root: Path | None = None
     adoption_policy: AdoptionPolicy = field(default_factory=AdoptionPolicy)
     remote_name: str = DEFAULT_REMOTE_NAME
     expected_remote: str | None = None
@@ -222,6 +223,11 @@ class LauncherActionConfig:
     def __post_init__(self) -> None:
         try:
             root = Path(self.repository_root).expanduser().resolve(strict=True)
+            state = (
+                root
+                if self.state_root is None
+                else Path(self.state_root).expanduser().resolve(strict=True)
+            )
             runtime = Path(self.runtime_root).expanduser().resolve()
             script = Path(self.worker_script).expanduser().resolve(strict=True)
             config = Path(self.config_path).expanduser().resolve(strict=True)
@@ -230,7 +236,7 @@ class LauncherActionConfig:
             raise LauncherActionError("launcher_action_path_invalid") from exc
         if script != root / "worker" / script.name:
             raise LauncherActionError("worker_script_outside_repository")
-        if runtime != root / "worker" / "runtime":
+        if runtime != state / "worker" / "runtime":
             raise LauncherActionError("runtime_boundary_invalid")
         if not isinstance(self.adoption_policy, AdoptionPolicy):
             raise LauncherActionError("adoption_policy_invalid")
@@ -275,6 +281,7 @@ class LauncherActionConfig:
             if value is not None:
                 _safe_token(value, name)
         object.__setattr__(self, "repository_root", root)
+        object.__setattr__(self, "state_root", state)
         object.__setattr__(self, "runtime_root", runtime)
         object.__setattr__(self, "worker_script", script)
         object.__setattr__(self, "config_path", config)
@@ -976,6 +983,7 @@ class LauncherOwnedHandoffActions:
             environment = {
                 **os.environ,
                 "PYTHONUNBUFFERED": "1",
+                "AI_AGENT_BRIDGE_STATE_ROOT": str(self.config.state_root),
                 "BRIDGE_HANDOFF_EVIDENCE_PATH": str(
                     self.config.runtime_root / "adoption-handoff.json"
                 ),
@@ -1201,6 +1209,7 @@ def create_launcher_action_controller(
     repository_root: Path,
     runtime_root: Path,
     worker_script: Path,
+    state_root: Path | None = None,
     config_path: Path,
     log_file: Path,
     adoption_policy: AdoptionPolicy,
@@ -1240,6 +1249,7 @@ def create_launcher_action_controller(
         repository_root=repository_root,
         runtime_root=runtime_root,
         worker_script=worker_script,
+        state_root=state_root,
         config_path=config_path,
         log_file=log_file,
         adoption_policy=adoption_policy,

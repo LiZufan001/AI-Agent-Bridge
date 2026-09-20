@@ -68,6 +68,7 @@ class StateRootTests(unittest.TestCase):
         with self.assertRaises(roots.StateRootError):roots.resolve_state_root(link)
     def test_adoption_and_live_workdir_blocked(self):
         with self.assertRaises(roots.StateRootError):roots.require_split_runtime_policy(self.state,{'adoption':{'controlled_adoption_enabled':True}})
+        with self.assertRaises(roots.StateRootError):roots.require_split_runtime_policy(self.state,{'adoption':{'unattended_adoption_enabled':True}})
         with self.assertRaises(roots.StateRootError):roots.guard_execution_workdir(self.state,self.state,{})
         with self.assertRaises(roots.StateRootError):roots.guard_execution_workdir(self.state,roots.engine_root(),{})
         roots.guard_execution_workdir(self.state,self.base/'product',{})
@@ -83,6 +84,26 @@ class StateRootTests(unittest.TestCase):
         with patch.object(control,'_github_token') as token:
             self.assertFalse(control.read_execution_control(self.state).execution_allowed)
             token.assert_not_called()
+    def test_private_controlled_adoption_requires_exact_engine_binding(self):
+        bootstrap=self._private();(self.state/'worker').mkdir(exist_ok=True)
+        engine=self.base/'running-engine';engine.mkdir()
+        binding={'schema_version':1,'execution_control':bootstrap['execution_control'],
+                 'heartbeat':{'repository':bootstrap.get('heartbeat_repository',bootstrap['repository']),**bootstrap['heartbeat']},
+                 'engine_deployment':{'mode':'windows_worker_launcher','repository':'example-owner/AI-Agent-Bridge',
+                                      'branch':'main','engine_root':str(engine),
+                                      'controlled_adoption_enabled':True,'unattended_adoption_enabled':False}}
+        (self.state/roots.BINDING).write_text(json.dumps(binding))
+        with patch.object(roots,'engine_root',return_value=engine):
+            deployment=roots.require_split_runtime_policy(
+                self.state,{'adoption':{'controlled_adoption_enabled':True,'unattended_adoption_enabled':False}})
+            self.assertEqual(deployment['repository'],'example-owner/AI-Agent-Bridge')
+            binding['engine_deployment']['engine_root']=str(self.base/'wrong-engine')
+            (self.base/'wrong-engine').mkdir()
+            (self.state/roots.BINDING).write_text(json.dumps(binding))
+            with self.assertRaises(roots.StateRootError):
+                roots.require_split_runtime_policy(
+                    self.state,{'adoption':{'controlled_adoption_enabled':True,'unattended_adoption_enabled':False}})
+
     def test_private_control_binding_exact_match_and_tamper(self):
         bootstrap=self._private();(self.state/'worker').mkdir(exist_ok=True)
         binding={'schema_version':1,'execution_control':bootstrap['execution_control'],

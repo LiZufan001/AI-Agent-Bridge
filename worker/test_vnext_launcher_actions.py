@@ -751,5 +751,37 @@ class SyntheticLauncherActionAcceptanceTests(unittest.TestCase):
                 action.close()
 
 
+class SplitLauncherActionConfigTests(unittest.TestCase):
+    def test_split_state_runtime_is_accepted_and_pinned(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="bridge-split-action-config-") as temp:
+            base = Path(temp)
+            engine = base / "engine"
+            state = base / "state"
+            worker = engine / "worker" / "bridge_worker_hardened.py"
+            config = state / "worker" / "config.local.json"
+            log = state / "worker" / "logs" / "launcher.log"
+            worker.parent.mkdir(parents=True)
+            config.parent.mkdir(parents=True)
+            (state / "worker" / "runtime").mkdir(parents=True)
+            worker.write_text("# fixture\n", encoding="utf-8")
+            config.write_text("{}\n", encoding="utf-8")
+            value = LauncherActionConfig(
+                repository_root=engine,
+                state_root=state,
+                runtime_root=state / "worker" / "runtime",
+                worker_script=worker,
+                config_path=config,
+                log_file=log,
+                adoption_policy=AdoptionPolicy(
+                    controlled_adoption_enabled=True,
+                    unattended_adoption_enabled=False,
+                ),
+                require_remote=False,
+            )
+            self.assertEqual(value.repository_root, engine.resolve())
+            self.assertEqual(value.state_root, state.resolve())
+            self.assertEqual(value.runtime_root, (state / "worker" / "runtime").resolve())
+
+
 if __name__ == "__main__":
     unittest.main()
