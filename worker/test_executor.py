@@ -183,8 +183,11 @@ class ConfigAndProfileTests(unittest.TestCase):
             f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.extends=":workspace"',
             rewritten,
         )
+        self.assertIn("--ignore-user-config", rewritten)
+        self.assertIn("--ignore-rules", rewritten)
+        self.assertIn('windows.sandbox="elevated"', rewritten)
         self.assertIn(
-            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.":root"="read"',
+            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem={{":root"="read"}}',
             rewritten,
         )
         self.assertIn("features.network_proxy=true", rewritten)
@@ -193,7 +196,7 @@ class ConfigAndProfileTests(unittest.TestCase):
             rewritten,
         )
         self.assertIn(
-            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains."*"="allow"',
+            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains={{"*"="allow"}}',
             rewritten,
         )
         self.assertIn("gpt-5.6-luna", rewritten)
@@ -224,6 +227,10 @@ class ConfigAndProfileTests(unittest.TestCase):
                 'default_permissions="other"',
                 "-c",
                 "features.network_proxy=false",
+                "-c",
+                'windows.sandbox="unelevated"',
+                "--ignore-user-config",
+                "--ignore-rules",
             ]
         )
         self.assertNotIn('sandbox_mode="danger-full-access"', stripped)
@@ -234,6 +241,10 @@ class ConfigAndProfileTests(unittest.TestCase):
         )
         self.assertNotIn('default_permissions="other"', stripped)
         self.assertNotIn("features.network_proxy=false", stripped)
+        self.assertNotIn('windows.sandbox="unelevated"', stripped)
+        self.assertEqual(stripped.count("--ignore-user-config"), 1)
+        self.assertEqual(stripped.count("--ignore-rules"), 1)
+        self.assertEqual(stripped.count('windows.sandbox="elevated"'), 1)
         self.assertEqual(
             stripped.count(
                 f'default_permissions="{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}"'
@@ -260,8 +271,8 @@ class ConfigAndProfileTests(unittest.TestCase):
             for item in executor.self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
         ]
         root_rule = (
-            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.'
-            '":root"="read"'
+            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem='
+            '{":root"="read"}'
         )
         index = missing_root_read.index(root_rule)
         del missing_root_read[index - 1 : index + 1]
