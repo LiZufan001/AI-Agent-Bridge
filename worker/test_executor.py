@@ -174,37 +174,16 @@ class ConfigAndProfileTests(unittest.TestCase):
         self.assertNotIn(executor.FULL_ACCESS_FLAG, rewritten)
         self.assertNotIn("--sandbox", rewritten)
         self.assertNotIn("--ask-for-approval", rewritten)
-        self.assertIn('approval_policy="never"', rewritten)
-        self.assertIn(
-            f'default_permissions="{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}"',
-            rewritten,
+        self.assertEqual(rewritten.count("--ignore-user-config"), 1)
+        self.assertEqual(rewritten.count("--ignore-rules"), 1)
+        self.assertEqual(rewritten.count('windows.sandbox="elevated"'), 1)
+        self.assertEqual(rewritten.count('approval_policy="never"'), 1)
+        self.assertEqual(
+            rewritten.count('default_permissions=":workspace"'),
+            1,
         )
-        self.assertIn(
-            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.extends=":workspace"',
-            rewritten,
-        )
-        self.assertIn("--ignore-user-config", rewritten)
-        self.assertIn("--ignore-rules", rewritten)
-        self.assertIn('windows.sandbox="elevated"', rewritten)
-        self.assertIn(
-            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem={{":root"="read"}}',
-            rewritten,
-        )
-        self.assertIn("features.network_proxy=true", rewritten)
-        self.assertIn(
-            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.network.enabled=true',
-            rewritten,
-        )
-        self.assertIn(
-            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains={{"*"="allow"}}',
-            rewritten,
-        )
-        self.assertFalse(
-            any('.filesystem.":root"' in item for item in rewritten)
-        )
-        self.assertFalse(
-            any('.network.domains."*"' in item for item in rewritten)
-        )
+        self.assertFalse(any(item.startswith("permissions.") for item in rewritten))
+        self.assertNotIn("features.network_proxy=true", rewritten)
         self.assertIn("gpt-5.6-luna", rewritten)
         self.assertEqual(
             executor.validate_self_maintenance_codex_args(rewritten),
@@ -226,13 +205,13 @@ class ConfigAndProfileTests(unittest.TestCase):
                 "-c",
                 'sandbox_mode="danger-full-access"',
                 "-c",
-                'permissions.synthetic.filesystem.":root"="write"',
+                'permissions.synthetic.filesystem={":root"="write"}',
                 "-c",
                 'sandbox_workspace_write.writable_roots=["outside"]',
                 "-c",
                 'default_permissions="other"',
                 "-c",
-                "features.network_proxy=false",
+                "features.network_proxy=true",
                 "-c",
                 'windows.sandbox="unelevated"',
                 "--ignore-user-config",
@@ -246,17 +225,13 @@ class ConfigAndProfileTests(unittest.TestCase):
             stripped,
         )
         self.assertNotIn('default_permissions="other"', stripped)
-        self.assertNotIn("features.network_proxy=false", stripped)
+        self.assertNotIn("features.network_proxy=true", stripped)
         self.assertNotIn('windows.sandbox="unelevated"', stripped)
         self.assertEqual(stripped.count("--ignore-user-config"), 1)
         self.assertEqual(stripped.count("--ignore-rules"), 1)
         self.assertEqual(stripped.count('windows.sandbox="elevated"'), 1)
-        self.assertEqual(
-            stripped.count(
-                f'default_permissions="{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}"'
-            ),
-            1,
-        )
+        self.assertEqual(stripped.count('default_permissions=":workspace"'), 1)
+        self.assertFalse(any(item.startswith("permissions.") for item in stripped))
 
     def test_self_maintenance_permission_profile_validation_fails_closed(self):
         with self.assertRaises(executor.WorkerError):
@@ -272,18 +247,20 @@ class ConfigAndProfileTests(unittest.TestCase):
                 ]
             )
 
-        missing_root_read = [
-            item
-            for item in executor.self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
-        ]
-        root_rule = (
-            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem='
-            '{":root"="read"}'
+        missing_workspace_profile = list(
+            executor.self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
         )
-        index = missing_root_read.index(root_rule)
-        del missing_root_read[index - 1 : index + 1]
+        index = missing_workspace_profile.index('default_permissions=":workspace"')
+        del missing_workspace_profile[index - 1 : index + 1]
         with self.assertRaises(executor.WorkerError):
-            executor.validate_self_maintenance_codex_args(missing_root_read)
+            executor.validate_self_maintenance_codex_args(missing_workspace_profile)
+
+        injected_network = list(
+            executor.self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
+        )
+        injected_network.extend(["-c", "features.network_proxy=true"])
+        with self.assertRaises(executor.WorkerError):
+            executor.validate_self_maintenance_codex_args(injected_network)
 
     def test_profile_direct_model_precedes_config_model(self):
         profile = executor.executor_profile_from_args(
@@ -364,8 +341,10 @@ class SelfMaintenancePromptTests(unittest.TestCase):
         guarded = executor.add_self_maintenance_prompt_guard(base)
 
         self.assertTrue(guarded.startswith(base))
-        self.assertIn("You may READ host files", guarded)
+        self.assertIn("current Candidate workspace as the complete maintenance source tree", guarded)
+        self.assertIn("Do not depend on direct reads from the running Engine", guarded)
         self.assertIn("WRITE only inside the current Candidate workspace", guarded)
+        self.assertIn("Do not depend on network access", guarded)
         self.assertIn("Do not commit, push", guarded)
         self.assertIn("outer authority", guarded)
 
