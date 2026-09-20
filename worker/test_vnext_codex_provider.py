@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from codex_lifecycle import CodexRunResult
+import executor
 from vnext_runtime.models import ExecutionOutcome, ExecutionProfile, ExecutionRequest, RunIdentity
 from vnext_runtime.providers.executors.codex import (
     CodexExecutorProvider,
@@ -118,6 +119,26 @@ class CodexProviderTests(unittest.TestCase):
         self.assertIn("engine-maintenance", kwargs["prompt"])
         self.assertEqual(result.provider_id, "codex")
         self.assertEqual(result.outcome, ExecutionOutcome.SUCCESS)
+
+    def test_workspace_write_mode_is_validated_and_invoked(self) -> None:
+        runner = Mock(return_value=fake_codex_result())
+        sandbox_args = tuple(
+            executor.self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
+        )
+        provider = CodexExecutorProvider(
+            self.settings(
+                codex_execution_mode=executor.WORKSPACE_WRITE_MODE,
+                codex_args=sandbox_args,
+            ),
+            runner=runner,
+        )
+
+        provider.execute(request(), scope())
+
+        args = runner.call_args.kwargs["codex_args"]
+        self.assertNotIn(executor.FULL_ACCESS_FLAG, args)
+        self.assertEqual(args[args.index("--sandbox") + 1], "workspace-write")
+        self.assertEqual(args[args.index("--ask-for-approval") + 1], "never")
 
     def test_scope_artifacts_are_used_and_provider_is_pinned(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
