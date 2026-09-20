@@ -142,10 +142,9 @@ class CodexProviderTests(unittest.TestCase):
         self.assertIn("--ignore-user-config", args)
         self.assertIn("--ignore-rules", args)
         self.assertIn('windows.sandbox="elevated"', args)
-        self.assertIn(
-            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem={{":root"="read"}}',
-            args,
-        )
+        self.assertIn('default_permissions=":workspace"', args)
+        self.assertFalse(any(item.startswith("permissions.") for item in args))
+        self.assertNotIn("features.network_proxy=true", args)
 
     def test_scope_artifacts_are_used_and_provider_is_pinned(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
