@@ -25,16 +25,23 @@ CodexRunResult = codex_lifecycle.CodexRunResult
 MarkerParser = codex_lifecycle.MarkerParser
 
 FULL_ACCESS_FLAG = "--dangerously-bypass-approvals-and-sandbox"
-WORKSPACE_WRITE_MODE = "workspace_write"
-WORKSPACE_WRITE_SANDBOX_ARGS = (
-    "--sandbox",
-    "workspace-write",
-    "--ask-for-approval",
-    "never",
+SELF_MAINTENANCE_PERMISSIONS_MODE = "permissions_profile"
+SELF_MAINTENANCE_PERMISSION_PROFILE = "bridge-self-maintenance"
+SELF_MAINTENANCE_PERMISSION_ARGS = (
     "-c",
-    "sandbox_workspace_write.network_access=true",
+    'approval_policy="never"',
     "-c",
-    "sandbox_workspace_write.writable_roots=[]",
+    f'default_permissions="{SELF_MAINTENANCE_PERMISSION_PROFILE}"',
+    "-c",
+    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.extends=":workspace"',
+    "-c",
+    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.":root"="read"',
+    "-c",
+    "features.network_proxy=true",
+    "-c",
+    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.enabled=true',
+    "-c",
+    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains."*"="allow"',
 )
 CONFLICTING_CODEX_FLAGS = {
     "-a",
@@ -129,6 +136,7 @@ def _security_config_key(key: str) -> bool:
             "approval_policy",
             "approvals_reviewer",
             "default_permissions",
+            "features.network_proxy",
         }
         or normalized.startswith("sandbox_workspace_write.")
         or normalized.startswith("permissions.")
@@ -136,15 +144,22 @@ def _security_config_key(key: str) -> bool:
 
 
 def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
-    """Validate the run-local Candidate-only Codex sandbox contract."""
+    """Validate the run-local broad-read, narrow-write Codex permission profile."""
 
     if FULL_ACCESS_FLAG in codex_args:
         raise WorkerError("Self-maintenance Codex must not run with full access.")
 
-    sandbox_values: list[str] = []
-    approval_values: list[str] = []
-    network_values: list[str] = []
-    writable_root_values: list[str] = []
+    expected_assignments = {
+        "approval_policy": "never",
+        "default_permissions": SELF_MAINTENANCE_PERMISSION_PROFILE,
+        f"permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.extends": ":workspace",
+        f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.":root"': "read",
+        "features.network_proxy": "true",
+        f"permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.enabled": "true",
+        f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains."*"': "allow",
+    }
+    observed: dict[str, list[str]] = {key: [] for key in expected_assignments}
+
     index = 0
     while index < len(codex_args):
         argument = codex_args[index]
@@ -154,31 +169,20 @@ def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
             raise WorkerError(
                 "Self-maintenance Codex must not override or extend its Candidate workspace."
             )
-        if argument in {"-s", "--sandbox"}:
-            if index + 1 >= len(codex_args):
-                raise WorkerError("Self-maintenance sandbox flag is missing its value.")
-            sandbox_values.append(codex_args[index + 1])
-            index += 2
-            continue
-        if argument.startswith("--sandbox="):
-            sandbox_values.append(argument.split("=", 1)[1])
-            index += 1
-            continue
-        if argument in {"-a", "--approval-policy", "--ask-for-approval"}:
-            if index + 1 >= len(codex_args):
-                raise WorkerError("Self-maintenance approval flag is missing its value.")
-            approval_values.append(codex_args[index + 1])
-            index += 2
-            continue
-        if argument.startswith("--approval-policy=") or argument.startswith(
-            "--ask-for-approval="
+        if (
+            argument in CONFLICTING_CODEX_FLAGS
+            or argument.startswith("--approval-policy=")
+            or argument.startswith("--ask-for-approval=")
+            or argument.startswith("--sandbox=")
         ):
-            approval_values.append(argument.split("=", 1)[1])
-            index += 1
-            continue
+            raise WorkerError(
+                "Self-maintenance Codex must use the permission profile, not legacy sandbox/approval flags."
+            )
 
         assignment: tuple[str, str] | None = None
-        if argument in {"-c", "--config"} and index + 1 < len(codex_args):
+        if argument in {"-c", "--config"}:
+            if index + 1 >= len(codex_args):
+                raise WorkerError(f"Codex argument {argument} is missing its value.")
             assignment = _config_assignment(codex_args[index + 1])
             index += 2
         elif argument.startswith("--config=") or argument.startswith("-c="):
@@ -186,31 +190,27 @@ def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
             index += 1
         else:
             index += 1
-        if assignment is not None:
-            if assignment[0] == "sandbox_workspace_write.network_access":
-                network_values.append(assignment[1])
-            elif assignment[0] == "sandbox_workspace_write.writable_roots":
-                writable_root_values.append(assignment[1])
 
-    if sandbox_values != ["workspace-write"]:
-        raise WorkerError(
-            "Self-maintenance Codex requires exactly one workspace-write sandbox."
-        )
-    if approval_values != ["never"]:
-        raise WorkerError("Self-maintenance Codex requires approval policy never.")
-    if network_values != ["true"]:
-        raise WorkerError(
-            "Self-maintenance Codex requires explicit workspace sandbox network access."
-        )
-    if writable_root_values != ["[]"]:
-        raise WorkerError(
-            "Self-maintenance Codex must clear inherited extra writable roots."
-        )
+        if assignment is None:
+            continue
+        key, value = assignment
+        if _security_config_key(key):
+            if key not in expected_assignments:
+                raise WorkerError(
+                    f"Self-maintenance Codex has unsupported security override: {key}."
+                )
+            observed[key].append(value)
+
+    for key, expected in expected_assignments.items():
+        if observed[key] != [expected]:
+            raise WorkerError(
+                f"Self-maintenance Codex permission profile requires exactly one {key}={expected}."
+            )
     return list(codex_args)
 
 
 def self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
-    """Rewrite validated full-access args into a Candidate-only write sandbox."""
+    """Rewrite full-access args into broad-read, Candidate/TEMP-write permissions."""
 
     rewritten: list[str] = []
     saw_full_access = False
@@ -234,7 +234,7 @@ def self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
             or argument.startswith("--sandbox=")
         ):
             raise WorkerError(
-                "Self-maintenance Codex received conflicting sandbox/approval arguments."
+                "Self-maintenance Codex received conflicting legacy sandbox/approval arguments."
             )
 
         if argument in {"-c", "--config"}:
@@ -260,9 +260,8 @@ def self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
         raise WorkerError(
             "Self-maintenance rewrite requires the validated full-access Worker baseline."
         )
-    rewritten.extend(WORKSPACE_WRITE_SANDBOX_ARGS)
+    rewritten.extend(SELF_MAINTENANCE_PERMISSION_ARGS)
     return validate_self_maintenance_codex_args(rewritten)
-
 
 def executor_profile_from_args(
     codex_args: list[str],
@@ -402,8 +401,9 @@ def add_self_maintenance_prompt_guard(prompt: str) -> str:
 This exact run is generating a maintenance Candidate, not deploying it.
 
 - You may READ host files needed to understand and verify the maintenance task.
-- WRITE only inside the current Candidate workspace.
-- Do not request approval or attempt to expand the writable workspace.
+- WRITE only inside the current Candidate workspace and ordinary system temporary
+  directories needed by tools. TEMP is disposable scratch, never deployment state.
+- Do not request approval or attempt to expand writable authority beyond those roots.
 - Do not use -C/--cd/--add-dir to change Codex workspace authority.
 - Git status/diff/log and other read-only inspection are allowed.
 - Do not commit, push, switch/reset branches, edit .git, deploy, restart, or
