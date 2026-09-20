@@ -341,8 +341,10 @@ class SelfMaintenancePromptTests(unittest.TestCase):
         guarded = executor.add_self_maintenance_prompt_guard(base)
 
         self.assertTrue(guarded.startswith(base))
-        self.assertIn("You may READ host files", guarded)
+        self.assertIn("current Candidate workspace as the complete maintenance source tree", guarded)
+        self.assertIn("Do not depend on direct reads from the running Engine", guarded)
         self.assertIn("WRITE only inside the current Candidate workspace", guarded)
+        self.assertIn("Do not depend on network access", guarded)
         self.assertIn("Do not commit, push", guarded)
         self.assertIn("outer authority", guarded)
 
