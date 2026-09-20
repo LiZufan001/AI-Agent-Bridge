@@ -297,9 +297,13 @@ class SelfMaintenanceTests(unittest.TestCase):
                 self.assertIn("--ignore-rules", kwargs["codex_args"])
                 self.assertIn('windows.sandbox="elevated"', kwargs["codex_args"])
                 self.assertIn(
-                    f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem={{":root"="read"}}',
+                    'default_permissions=":workspace"',
                     kwargs["codex_args"],
                 )
+                self.assertFalse(
+                    any(item.startswith("permissions.") for item in kwargs["codex_args"])
+                )
+                self.assertNotIn("features.network_proxy=true", kwargs["codex_args"])
                 protected = self.candidate / "projects" / "owned" / "state.json"
                 protected.parent.mkdir(parents=True)
                 protected.write_text("mutated\n", encoding="utf-8")
