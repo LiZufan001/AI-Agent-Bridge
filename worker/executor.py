@@ -28,6 +28,10 @@ FULL_ACCESS_FLAG = "--dangerously-bypass-approvals-and-sandbox"
 SELF_MAINTENANCE_PERMISSIONS_MODE = "permissions_profile"
 SELF_MAINTENANCE_PERMISSION_PROFILE = "bridge-self-maintenance"
 SELF_MAINTENANCE_PERMISSION_ARGS = (
+    "--ignore-user-config",
+    "--ignore-rules",
+    "-c",
+    'windows.sandbox="elevated"',
     "-c",
     'approval_policy="never"',
     "-c",
@@ -35,13 +39,13 @@ SELF_MAINTENANCE_PERMISSION_ARGS = (
     "-c",
     f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.extends=":workspace"',
     "-c",
-    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.":root"="read"',
+    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem={{":root"="read"}}',
     "-c",
     "features.network_proxy=true",
     "-c",
     f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.enabled=true',
     "-c",
-    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains."*"="allow"',
+    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains={{"*"="allow"}}',
 )
 CONFLICTING_CODEX_FLAGS = {
     "-a",
@@ -137,6 +141,7 @@ def _security_config_key(key: str) -> bool:
             "approvals_reviewer",
             "default_permissions",
             "features.network_proxy",
+            "windows.sandbox",
         }
         or normalized.startswith("sandbox_workspace_write.")
         or normalized.startswith("permissions.")
@@ -150,19 +155,30 @@ def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
         raise WorkerError("Self-maintenance Codex must not run with full access.")
 
     expected_assignments = {
+        "windows.sandbox": "elevated",
         "approval_policy": "never",
         "default_permissions": SELF_MAINTENANCE_PERMISSION_PROFILE,
         f"permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.extends": ":workspace",
-        f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.":root"': "read",
+        f"permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem": '{":root"="read"}',
         "features.network_proxy": "true",
         f"permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.enabled": "true",
-        f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains."*"': "allow",
+        f"permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains": '{"*"="allow"}',
     }
     observed: dict[str, list[str]] = {key: [] for key in expected_assignments}
+    ignore_user_config = 0
+    ignore_rules = 0
 
     index = 0
     while index < len(codex_args):
         argument = codex_args[index]
+        if argument == "--ignore-user-config":
+            ignore_user_config += 1
+            index += 1
+            continue
+        if argument == "--ignore-rules":
+            ignore_rules += 1
+            index += 1
+            continue
         if argument in {"-C", "--cd", "--add-dir"} or argument.startswith(
             ("-C=", "--cd=", "--add-dir=")
         ):
@@ -201,6 +217,14 @@ def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
                 )
             observed[key].append(value)
 
+    if ignore_user_config != 1:
+        raise WorkerError(
+            "Self-maintenance Codex requires exactly one --ignore-user-config."
+        )
+    if ignore_rules != 1:
+        raise WorkerError(
+            "Self-maintenance Codex requires exactly one --ignore-rules."
+        )
     for key, expected in expected_assignments.items():
         if observed[key] != [expected]:
             raise WorkerError(
@@ -217,6 +241,9 @@ def self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
     index = 0
     while index < len(codex_args):
         argument = codex_args[index]
+        if argument in {"--ignore-user-config", "--ignore-rules"}:
+            index += 1
+            continue
         if argument == FULL_ACCESS_FLAG:
             saw_full_access = True
             index += 1
