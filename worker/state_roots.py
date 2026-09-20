@@ -308,11 +308,14 @@ def require_split_runtime_policy(root: Path, config: dict) -> dict | None:
 
 
 def guard_execution_workdir(state: Path, workdir: Path, project_config: dict) -> None:
+    """Keep every executor cwd disjoint from canonical State and live Engine.
+
+    Self-maintenance receives its stronger Candidate-only write boundary later,
+    after independent-clone preflight, by rewriting only that Codex run into
+    workspace-write/never mode.  This function intentionally does not treat the
+    project label itself as proof of sandboxing.
+    """
     if not (state / MARKER).exists():
         return
     if overlaps(state, workdir) or overlaps(engine_root(), workdir):
         raise StateRootError("executor workdir must not overlap State or running Engine")
-    if project_config.get("self_maintenance", {}).get("enabled"):
-        # A same-user full-access process is not an isolation boundary. Never
-        # claim that a post-run fingerprint prevents private State mutation.
-        raise StateRootError("split self-maintenance requires an isolated executor; disabled pending Owner acceptance")
