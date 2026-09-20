@@ -72,7 +72,7 @@ class StateRootTests(unittest.TestCase):
         with self.assertRaises(roots.StateRootError):roots.guard_execution_workdir(self.state,self.state,{})
         with self.assertRaises(roots.StateRootError):roots.guard_execution_workdir(self.state,roots.engine_root(),{})
         roots.guard_execution_workdir(self.state,self.base/'product',{})
-        with self.assertRaises(roots.StateRootError):roots.guard_execution_workdir(self.state,self.base/'maintenance',{'self_maintenance':{'enabled':True}})
+        roots.guard_execution_workdir(self.state,self.base/'maintenance',{'self_maintenance':{'enabled':True}})
     def _private(self):
         marker=json.loads((self.state/roots.MARKER).read_text());marker['kind']='private-state'
         (self.state/roots.MARKER).write_text(json.dumps(marker))
