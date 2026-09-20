@@ -26,7 +26,7 @@ MarkerParser = codex_lifecycle.MarkerParser
 
 FULL_ACCESS_FLAG = "--dangerously-bypass-approvals-and-sandbox"
 SELF_MAINTENANCE_PERMISSIONS_MODE = "permissions_profile"
-SELF_MAINTENANCE_PERMISSION_PROFILE = "bridge-self-maintenance"
+SELF_MAINTENANCE_PERMISSION_PROFILE = ":workspace"
 SELF_MAINTENANCE_PERMISSION_ARGS = (
     "--ignore-user-config",
     "--ignore-rules",
@@ -36,16 +36,6 @@ SELF_MAINTENANCE_PERMISSION_ARGS = (
     'approval_policy="never"',
     "-c",
     f'default_permissions="{SELF_MAINTENANCE_PERMISSION_PROFILE}"',
-    "-c",
-    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.extends=":workspace"',
-    "-c",
-    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem={{":root"="read"}}',
-    "-c",
-    "features.network_proxy=true",
-    "-c",
-    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.enabled=true',
-    "-c",
-    f'permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains={{"*"="allow"}}',
 )
 CONFLICTING_CODEX_FLAGS = {
     "-a",
@@ -149,7 +139,7 @@ def _security_config_key(key: str) -> bool:
 
 
 def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
-    """Validate the run-local broad-read, narrow-write Codex permission profile."""
+    """Validate the run-local Candidate-local Codex permission profile."""
 
     if FULL_ACCESS_FLAG in codex_args:
         raise WorkerError("Self-maintenance Codex must not run with full access.")
@@ -158,11 +148,6 @@ def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
         "windows.sandbox": "elevated",
         "approval_policy": "never",
         "default_permissions": SELF_MAINTENANCE_PERMISSION_PROFILE,
-        f"permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.extends": ":workspace",
-        f"permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem": '{":root"="read"}',
-        "features.network_proxy": "true",
-        f"permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.enabled": "true",
-        f"permissions.{SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains": '{"*"="allow"}',
     }
     observed: dict[str, list[str]] = {key: [] for key in expected_assignments}
     ignore_user_config = 0
@@ -234,7 +219,7 @@ def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
 
 
 def self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
-    """Rewrite full-access args into broad-read, Candidate/TEMP-write permissions."""
+    """Rewrite full-access args into Candidate-local workspace permissions."""
 
     rewritten: list[str] = []
     saw_full_access = False
@@ -427,12 +412,16 @@ def add_self_maintenance_prompt_guard(prompt: str) -> str:
 ===== SELF-MAINTENANCE CANDIDATE BOUNDARY =====
 This exact run is generating a maintenance Candidate, not deploying it.
 
-- You may READ host files needed to understand and verify the maintenance task.
+- Treat the current Candidate workspace as the complete maintenance source tree.
+- Do not depend on direct reads from the running Engine, Private State, Legacy,
+  or other host project directories; the outer Worker must supply required context.
 - WRITE only inside the current Candidate workspace and ordinary system temporary
-  directories needed by tools. TEMP is disposable scratch, never deployment state.
+  directories needed by local tools. TEMP is disposable scratch, never deployment state.
+- Do not depend on network access; GitHub fetch/push and other remote actions belong
+  to the trusted outer authority.
 - Do not request approval or attempt to expand writable authority beyond those roots.
 - Do not use -C/--cd/--add-dir to change Codex workspace authority.
-- Git status/diff/log and other read-only inspection are allowed.
+- Git status/diff/log and other read-only inspection inside Candidate are allowed.
 - Do not commit, push, switch/reset branches, edit .git, deploy, restart, or
   adopt the running Bridge.
 - Modify and test the Candidate working tree, then leave it for the trusted
