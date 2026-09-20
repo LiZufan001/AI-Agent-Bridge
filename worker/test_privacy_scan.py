@@ -20,6 +20,23 @@ class PrivacyScanTests(unittest.TestCase):
             ('a.md',('person@'+'mail.invalid').encode(),'personal-email')]
         for path,raw,rule in samples:
             with self.subTest(rule=rule):self.assertIn(rule,{x['rule'] for x in scan.inspect(path,raw,mode='public',denied=set())})
+    def test_github_pr_merge_noreply_is_exactly_allowed(self):
+        safe = scan.inspect(
+            '.git/commit/synthetic-merge',
+            b'committer GitHub <noreply@github.com> 0 +0000\n',
+            mode='public',
+            denied=set(),
+        )
+        self.assertNotIn('personal-email', {item['rule'] for item in safe})
+        unsafe_email = b'person' + b'@' + b'github.com'
+        unsafe = scan.inspect(
+            '.git/commit/not-system',
+            b'committer Person <' + unsafe_email + b'> 0 +0000\n',
+            mode='public',
+            denied=set(),
+        )
+        self.assertIn('personal-email', {item['rule'] for item in unsafe})
+
     def test_compound_known_identifier_detected_without_printing_value(self):
         token='private-lab';denied={scan.sha(token.encode())}
         findings=scan.inspect('a.md',(token+' project').encode(),mode='public',denied=denied)

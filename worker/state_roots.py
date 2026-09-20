@@ -204,6 +204,50 @@ def deployment_binding(root: Path) -> dict:
     return value
 
 
+def validate_engine_deployment_contract(value: object) -> dict:
+    """Validate the operator-installed outer Launcher authority for Engine adoption."""
+
+    keys = {
+        "mode",
+        "repository",
+        "branch",
+        "engine_root",
+        "controlled_adoption_enabled",
+        "unattended_adoption_enabled",
+    }
+    if not isinstance(value, dict) or set(value) != keys:
+        raise StateRootError("Engine deployment binding shape invalid")
+    repository = value.get("repository")
+    branch = value.get("branch")
+    raw_root = value.get("engine_root")
+    if (
+        value.get("mode") != "windows_worker_launcher"
+        or not isinstance(repository, str)
+        or not _REPOSITORY.fullmatch(repository)
+        or branch != "main"
+        or not isinstance(raw_root, str)
+        or not raw_root
+        or "\x00" in raw_root
+        or "\r" in raw_root
+        or "\n" in raw_root
+        or value.get("controlled_adoption_enabled") is not True
+        or value.get("unattended_adoption_enabled") is not False
+    ):
+        raise StateRootError("Engine deployment binding invalid")
+    path = Path(raw_root).expanduser()
+    if not path.is_absolute():
+        raise StateRootError("Engine deployment root must be absolute")
+    assert_no_links(path)
+    try:
+        bound_root = path.resolve(strict=True)
+        running_root = engine_root().resolve(strict=True)
+    except OSError:
+        raise StateRootError("Engine deployment root unavailable") from None
+    if bound_root != running_root:
+        raise StateRootError("Engine deployment root differs from the running Engine")
+    return dict(value)
+
+
 def expected_control(root: Path, synthetic_default: dict) -> dict:
     """A marked private State must match an Owner-installed, Git-ignored binding.
 
@@ -226,22 +270,41 @@ def inherit_local_binding(source: Path, clone: Path) -> None:
         target.write_text(json.dumps(binding, indent=2) + "\n", encoding="utf-8")
 
 
-def require_split_runtime_policy(root: Path, config: dict) -> None:
-    """Retain the old controlled-adoption implementation, but do not run it split.
+def require_split_runtime_policy(root: Path, config: dict) -> dict | None:
+    """Gate split adoption on a private operator binding; unattended stays disabled.
 
-    It couples code promotion to the same Git authority as canonical state.
-    Split Engine deployment is an explicit, quiescent operator operation.
+    The Worker may observe an already-prepared manual handoff, but only an
+    explicitly armed outer Launcher may mutate or restart the running Engine.
+    The binding lives in ignored Private State so
+    candidate Engine code cannot create deployment authority merely by changing
+    tracked source or configuration.
     """
     if not (root / MARKER).exists():
-        return
+        return None
     adoption = config.get("adoption", {})
-    if not isinstance(adoption, dict) or any(adoption.get(k, False) for k in (
-            "controlled_adoption_enabled", "unattended_adoption_enabled")):
-        raise StateRootError("in-process code adoption is disabled for split repositories")
-    if marker(root)["kind"] == "private-state":
+    if not isinstance(adoption, dict):
+        raise StateRootError("adoption policy must be an object")
+    controlled = adoption.get("controlled_adoption_enabled", False)
+    unattended = adoption.get("unattended_adoption_enabled", False)
+    if type(controlled) is not bool or type(unattended) is not bool:
+        raise StateRootError("adoption policy flags must be booleans")
+    if unattended:
+        raise StateRootError("unattended split adoption is disabled")
+
+    kind = marker(root)["kind"]
+    deployment: dict | None = None
+    if controlled:
+        if kind != "private-state":
+            raise StateRootError("controlled split adoption requires Private State")
+        deployment = validate_engine_deployment_contract(
+            deployment_binding(root).get("engine_deployment")
+        )
+
+    if kind == "private-state":
         bootstrap = _object(root / "supervisor/bootstrap.json")
         if validate_control_contract(bootstrap.get("execution_control")) != expected_control(root, {}):
             raise StateRootError("State control location differs from the Owner binding")
+    return deployment
 
 
 def guard_execution_workdir(state: Path, workdir: Path, project_config: dict) -> None:

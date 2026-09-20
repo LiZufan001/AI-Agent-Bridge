@@ -299,6 +299,22 @@ class WindowsWorkerLauncherProcessTreeTests(unittest.TestCase):
         self.assertTrue(wait_until(lambda: not pid_exists(child_pid)))
 
 
+class WindowsWorkerLauncherArgumentTests(unittest.TestCase):
+    def test_controlled_adoption_is_not_armed_by_default(self):
+        argv = [
+            "windows_worker_launcher.py",
+            "--worker-script", "worker.py",
+            "--config", "config.json",
+            "--log-file", "launcher.log",
+        ]
+        with patch.object(sys, "argv", argv):
+            args = launcher.parse_args()
+        self.assertFalse(args.allow_controlled_adoption)
+        with patch.object(sys, "argv", [*argv, "--allow-controlled-adoption"]):
+            armed = launcher.parse_args()
+        self.assertTrue(armed.allow_controlled_adoption)
+
+
 class WindowsWorkerLauncherFallbackTests(unittest.TestCase):
     def test_non_windows_fallback_is_noop(self):
         with patch.object(launcher.os, "name", "posix"):

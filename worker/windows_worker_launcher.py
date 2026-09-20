@@ -84,6 +84,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--log-file", required=True, type=Path)
     parser.add_argument("--state-root", type=Path)
+    parser.add_argument(
+        "--allow-controlled-adoption",
+        action="store_true",
+        help="Arm operator-bound manual adoption actions in this outer Launcher.",
+    )
     return parser.parse_args()
 
 
@@ -267,8 +272,10 @@ def create_launcher_action_controller(
     runtime_root: Path,
     worker_script: Path,
     config_path: Path,
+    state_root: Path | None = None,
     log_file: Path,
     policy: AdoptionPolicy | None,
+    expected_remote: str | None = None,
 ) -> LauncherOwnedHandoffActions | None:
     """Construct concrete actions only after explicit controlled enablement."""
 
@@ -279,9 +286,11 @@ def create_launcher_action_controller(
             repository_root=repository_root,
             runtime_root=runtime_root,
             worker_script=worker_script,
+            state_root=state_root,
             config_path=config_path,
             log_file=log_file,
             adoption_policy=policy,
+            expected_remote=expected_remote,
         )
     except LauncherActionError:
         # A bad local action configuration must leave the existing fail-closed
@@ -350,15 +359,25 @@ def main() -> int:
 
     state_root = state_roots.resolve_state_root(args.state_root, for_write=True)
     config = json.loads(config_path.read_text(encoding="utf-8"))
-    state_roots.require_split_runtime_policy(state_root, config)
+    deployment = state_roots.require_split_runtime_policy(state_root, config)
     runtime_root = state_root / "worker/runtime"
     action_controller = create_launcher_action_controller(
         repository_root=worker_script.parent.parent,
         runtime_root=runtime_root,
         worker_script=worker_script,
+        state_root=state_root,
         config_path=config_path,
         log_file=log_file,
-        policy=_controlled_adoption_policy(config_path),
+        policy=(
+            _controlled_adoption_policy(config_path)
+            if getattr(args, "allow_controlled_adoption", False)
+            else None
+        ),
+        expected_remote=(
+            f"https://github.com/{deployment['repository']}.git"
+            if deployment is not None
+            else None
+        ),
     )
     # This object is deliberately created before the first Worker and lives
     # across every Worker replacement in the loop.  Without explicit
