@@ -33,6 +33,8 @@ WORKSPACE_WRITE_SANDBOX_ARGS = (
     "never",
     "-c",
     "sandbox_workspace_write.network_access=true",
+    "-c",
+    "sandbox_workspace_write.writable_roots=[]",
 )
 CONFLICTING_CODEX_FLAGS = {
     "-a",
@@ -127,8 +129,8 @@ def _security_config_key(key: str) -> bool:
             "approval_policy",
             "approvals_reviewer",
             "default_permissions",
-            "sandbox_workspace_write.network_access",
         }
+        or normalized.startswith("sandbox_workspace_write.")
         or normalized.startswith("permissions.")
     )
 
@@ -142,6 +144,7 @@ def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
     sandbox_values: list[str] = []
     approval_values: list[str] = []
     network_values: list[str] = []
+    writable_root_values: list[str] = []
     index = 0
     while index < len(codex_args):
         argument = codex_args[index]
@@ -183,8 +186,11 @@ def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
             index += 1
         else:
             index += 1
-        if assignment is not None and assignment[0] == "sandbox_workspace_write.network_access":
-            network_values.append(assignment[1])
+        if assignment is not None:
+            if assignment[0] == "sandbox_workspace_write.network_access":
+                network_values.append(assignment[1])
+            elif assignment[0] == "sandbox_workspace_write.writable_roots":
+                writable_root_values.append(assignment[1])
 
     if sandbox_values != ["workspace-write"]:
         raise WorkerError(
@@ -195,6 +201,10 @@ def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
     if network_values != ["true"]:
         raise WorkerError(
             "Self-maintenance Codex requires explicit workspace sandbox network access."
+        )
+    if writable_root_values != ["[]"]:
+        raise WorkerError(
+            "Self-maintenance Codex must clear inherited extra writable roots."
         )
     return list(codex_args)
 
