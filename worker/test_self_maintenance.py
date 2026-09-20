@@ -293,8 +293,11 @@ class SelfMaintenanceTests(unittest.TestCase):
                 self.assertNotIn("--sandbox", kwargs["codex_args"])
                 self.assertNotIn("--ask-for-approval", kwargs["codex_args"])
                 self.assertIn('approval_policy="never"', kwargs["codex_args"])
+                self.assertIn("--ignore-user-config", kwargs["codex_args"])
+                self.assertIn("--ignore-rules", kwargs["codex_args"])
+                self.assertIn('windows.sandbox="elevated"', kwargs["codex_args"])
                 self.assertIn(
-                    f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.":root"="read"',
+                    f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem={{":root"="read"}}',
                     kwargs["codex_args"],
                 )
                 protected = self.candidate / "projects" / "owned" / "state.json"
