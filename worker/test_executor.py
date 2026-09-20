@@ -181,6 +181,7 @@ class ConfigAndProfileTests(unittest.TestCase):
             "never",
         )
         self.assertIn("sandbox_workspace_write.network_access=true", rewritten)
+        self.assertIn("sandbox_workspace_write.writable_roots=[]", rewritten)
         self.assertIn("gpt-5.6-luna", rewritten)
         self.assertEqual(
             executor.validate_self_maintenance_codex_args(rewritten),
@@ -203,17 +204,35 @@ class ConfigAndProfileTests(unittest.TestCase):
                 'sandbox_mode="danger-full-access"',
                 "-c",
                 'permissions.synthetic.filesystem.":root"="write"',
+                "-c",
+                'sandbox_workspace_write.writable_roots=["outside"]',
             ]
         )
         self.assertNotIn('sandbox_mode="danger-full-access"', stripped)
         self.assertFalse(any("permissions.synthetic" in item for item in stripped))
+        self.assertNotIn(
+            'sandbox_workspace_write.writable_roots=["outside"]',
+            stripped,
+        )
+        self.assertEqual(
+            stripped.count("sandbox_workspace_write.writable_roots=[]"),
+            1,
+        )
 
     def test_self_maintenance_sandbox_validation_fails_closed(self):
         with self.assertRaises(executor.WorkerError):
             executor.validate_self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
         with self.assertRaises(executor.WorkerError):
             executor.validate_self_maintenance_codex_args(
-                ["exec", "--sandbox", "workspace-write", "--ask-for-approval", "never"]
+                [
+                    "exec",
+                    "--sandbox",
+                    "workspace-write",
+                    "--ask-for-approval",
+                    "never",
+                    "-c",
+                    "sandbox_workspace_write.network_access=true",
+                ]
             )
 
     def test_profile_direct_model_precedes_config_model(self):
