@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import bridge_worker as bw
+import executor
 import self_maintenance as sm
 from codex_lifecycle import CodexRunResult
 
@@ -279,7 +280,26 @@ class SelfMaintenanceTests(unittest.TestCase):
                         published_report = value
                 return remote_state
 
-            def fake_codex(**_kwargs):
+            def fake_codex(**kwargs):
+                self.assertEqual(
+                    kwargs["codex_execution_mode"],
+                    executor.WORKSPACE_WRITE_MODE,
+                )
+                self.assertIn(
+                    "SELF-MAINTENANCE CANDIDATE BOUNDARY",
+                    kwargs["prompt"],
+                )
+                self.assertNotIn(executor.FULL_ACCESS_FLAG, kwargs["codex_args"])
+                self.assertEqual(
+                    kwargs["codex_args"][kwargs["codex_args"].index("--sandbox") + 1],
+                    "workspace-write",
+                )
+                self.assertEqual(
+                    kwargs["codex_args"][
+                        kwargs["codex_args"].index("--ask-for-approval") + 1
+                    ],
+                    "never",
+                )
                 protected = self.candidate / "projects" / "owned" / "state.json"
                 protected.parent.mkdir(parents=True)
                 protected.write_text("mutated\n", encoding="utf-8")

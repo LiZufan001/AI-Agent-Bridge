@@ -168,6 +168,54 @@ class ConfigAndProfileTests(unittest.TestCase):
                     }
                 )
 
+    def test_self_maintenance_rewrites_full_access_to_candidate_sandbox(self):
+        rewritten = executor.self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
+
+        self.assertNotIn(executor.FULL_ACCESS_FLAG, rewritten)
+        self.assertEqual(
+            rewritten[rewritten.index("--sandbox") + 1],
+            "workspace-write",
+        )
+        self.assertEqual(
+            rewritten[rewritten.index("--ask-for-approval") + 1],
+            "never",
+        )
+        self.assertIn("sandbox_workspace_write.network_access=true", rewritten)
+        self.assertIn("gpt-5.6-luna", rewritten)
+        self.assertEqual(
+            executor.validate_self_maintenance_codex_args(rewritten),
+            rewritten,
+        )
+
+        for escape in (
+            ["--add-dir", "outside"],
+            ["--add-dir=outside"],
+            ["-C", "outside"],
+            ["--cd=outside"],
+        ):
+            with self.subTest(escape=escape), self.assertRaises(executor.WorkerError):
+                executor.self_maintenance_codex_args([*FULL_ACCESS_ARGS, *escape])
+
+        stripped = executor.self_maintenance_codex_args(
+            [
+                *FULL_ACCESS_ARGS,
+                "-c",
+                'sandbox_mode="danger-full-access"',
+                "-c",
+                'permissions.synthetic.filesystem.":root"="write"',
+            ]
+        )
+        self.assertNotIn('sandbox_mode="danger-full-access"', stripped)
+        self.assertFalse(any("permissions.synthetic" in item for item in stripped))
+
+    def test_self_maintenance_sandbox_validation_fails_closed(self):
+        with self.assertRaises(executor.WorkerError):
+            executor.validate_self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
+        with self.assertRaises(executor.WorkerError):
+            executor.validate_self_maintenance_codex_args(
+                ["exec", "--sandbox", "workspace-write", "--ask-for-approval", "never"]
+            )
+
     def test_profile_direct_model_precedes_config_model(self):
         profile = executor.executor_profile_from_args(
             [
@@ -239,6 +287,18 @@ class ConfigAndProfileTests(unittest.TestCase):
         self.assertIn("--config=other.setting=true", effective)
         self.assertEqual(effective.count("-m"), 1)
         self.assertIn('model_reasoning_effort="xhigh"', effective)
+
+
+class SelfMaintenancePromptTests(unittest.TestCase):
+    def test_candidate_prompt_guard_preserves_read_and_reserves_deployment(self):
+        base = "base prompt"
+        guarded = executor.add_self_maintenance_prompt_guard(base)
+
+        self.assertTrue(guarded.startswith(base))
+        self.assertIn("You may READ host files", guarded)
+        self.assertIn("WRITE only inside the current Candidate workspace", guarded)
+        self.assertIn("Do not commit, push", guarded)
+        self.assertIn("outer authority", guarded)
 
 
 class PromptTests(unittest.TestCase):

@@ -25,6 +25,15 @@ CodexRunResult = codex_lifecycle.CodexRunResult
 MarkerParser = codex_lifecycle.MarkerParser
 
 FULL_ACCESS_FLAG = "--dangerously-bypass-approvals-and-sandbox"
+WORKSPACE_WRITE_MODE = "workspace_write"
+WORKSPACE_WRITE_SANDBOX_ARGS = (
+    "--sandbox",
+    "workspace-write",
+    "--ask-for-approval",
+    "never",
+    "-c",
+    "sandbox_workspace_write.network_access=true",
+)
 CONFLICTING_CODEX_FLAGS = {
     "-a",
     "-s",
@@ -108,6 +117,141 @@ def _config_assignment(argument: str) -> tuple[str, str] | None:
     if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
         value = value[1:-1]
     return key, value
+
+
+def _security_config_key(key: str) -> bool:
+    normalized = key.strip()
+    return (
+        normalized in {
+            "sandbox_mode",
+            "approval_policy",
+            "approvals_reviewer",
+            "default_permissions",
+            "sandbox_workspace_write.network_access",
+        }
+        or normalized.startswith("permissions.")
+    )
+
+
+def validate_self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
+    """Validate the run-local Candidate-only Codex sandbox contract."""
+
+    if FULL_ACCESS_FLAG in codex_args:
+        raise WorkerError("Self-maintenance Codex must not run with full access.")
+
+    sandbox_values: list[str] = []
+    approval_values: list[str] = []
+    network_values: list[str] = []
+    index = 0
+    while index < len(codex_args):
+        argument = codex_args[index]
+        if argument in {"-C", "--cd", "--add-dir"} or argument.startswith(
+            ("-C=", "--cd=", "--add-dir=")
+        ):
+            raise WorkerError(
+                "Self-maintenance Codex must not override or extend its Candidate workspace."
+            )
+        if argument in {"-s", "--sandbox"}:
+            if index + 1 >= len(codex_args):
+                raise WorkerError("Self-maintenance sandbox flag is missing its value.")
+            sandbox_values.append(codex_args[index + 1])
+            index += 2
+            continue
+        if argument.startswith("--sandbox="):
+            sandbox_values.append(argument.split("=", 1)[1])
+            index += 1
+            continue
+        if argument in {"-a", "--approval-policy", "--ask-for-approval"}:
+            if index + 1 >= len(codex_args):
+                raise WorkerError("Self-maintenance approval flag is missing its value.")
+            approval_values.append(codex_args[index + 1])
+            index += 2
+            continue
+        if argument.startswith("--approval-policy=") or argument.startswith(
+            "--ask-for-approval="
+        ):
+            approval_values.append(argument.split("=", 1)[1])
+            index += 1
+            continue
+
+        assignment: tuple[str, str] | None = None
+        if argument in {"-c", "--config"} and index + 1 < len(codex_args):
+            assignment = _config_assignment(codex_args[index + 1])
+            index += 2
+        elif argument.startswith("--config=") or argument.startswith("-c="):
+            assignment = _config_assignment(argument.split("=", 1)[1])
+            index += 1
+        else:
+            index += 1
+        if assignment is not None and assignment[0] == "sandbox_workspace_write.network_access":
+            network_values.append(assignment[1])
+
+    if sandbox_values != ["workspace-write"]:
+        raise WorkerError(
+            "Self-maintenance Codex requires exactly one workspace-write sandbox."
+        )
+    if approval_values != ["never"]:
+        raise WorkerError("Self-maintenance Codex requires approval policy never.")
+    if network_values != ["true"]:
+        raise WorkerError(
+            "Self-maintenance Codex requires explicit workspace sandbox network access."
+        )
+    return list(codex_args)
+
+
+def self_maintenance_codex_args(codex_args: list[str]) -> list[str]:
+    """Rewrite validated full-access args into a Candidate-only write sandbox."""
+
+    rewritten: list[str] = []
+    saw_full_access = False
+    index = 0
+    while index < len(codex_args):
+        argument = codex_args[index]
+        if argument == FULL_ACCESS_FLAG:
+            saw_full_access = True
+            index += 1
+            continue
+        if argument in {"-C", "--cd", "--add-dir"} or argument.startswith(
+            ("-C=", "--cd=", "--add-dir=")
+        ):
+            raise WorkerError(
+                "Self-maintenance Codex must use only the validated Candidate workdir."
+            )
+        if (
+            argument in CONFLICTING_CODEX_FLAGS
+            or argument.startswith("--approval-policy=")
+            or argument.startswith("--ask-for-approval=")
+            or argument.startswith("--sandbox=")
+        ):
+            raise WorkerError(
+                "Self-maintenance Codex received conflicting sandbox/approval arguments."
+            )
+
+        if argument in {"-c", "--config"}:
+            if index + 1 >= len(codex_args):
+                raise WorkerError(f"Codex argument {argument} is missing its value.")
+            assignment = _config_assignment(codex_args[index + 1])
+            if assignment is not None and _security_config_key(assignment[0]):
+                index += 2
+                continue
+            rewritten.extend((argument, codex_args[index + 1]))
+            index += 2
+            continue
+        if argument.startswith("--config=") or argument.startswith("-c="):
+            assignment = _config_assignment(argument.split("=", 1)[1])
+            if assignment is not None and _security_config_key(assignment[0]):
+                index += 1
+                continue
+
+        rewritten.append(argument)
+        index += 1
+
+    if not saw_full_access:
+        raise WorkerError(
+            "Self-maintenance rewrite requires the validated full-access Worker baseline."
+        )
+    rewritten.extend(WORKSPACE_WRITE_SANDBOX_ARGS)
+    return validate_self_maintenance_codex_args(rewritten)
 
 
 def executor_profile_from_args(
@@ -237,6 +381,26 @@ def effective_codex_args(
         effective,
         source="command_override",
     )
+
+
+def add_self_maintenance_prompt_guard(prompt: str) -> str:
+    """Append the Candidate-only mutation contract without restricting reads."""
+
+    return prompt + r"""
+
+===== SELF-MAINTENANCE CANDIDATE BOUNDARY =====
+This exact run is generating a maintenance Candidate, not deploying it.
+
+- You may READ host files needed to understand and verify the maintenance task.
+- WRITE only inside the current Candidate workspace.
+- Do not request approval or attempt to expand the writable workspace.
+- Do not use -C/--cd/--add-dir to change Codex workspace authority.
+- Git status/diff/log and other read-only inspection are allowed.
+- Do not commit, push, switch/reset branches, edit .git, deploy, restart, or
+  adopt the running Bridge.
+- Modify and test the Candidate working tree, then leave it for the trusted
+  outer authority to review, commit, and adopt.
+"""
 
 
 def build_prompt(project_id: str, mission: str, command: str) -> str:
