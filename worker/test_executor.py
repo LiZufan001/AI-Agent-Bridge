@@ -199,6 +199,12 @@ class ConfigAndProfileTests(unittest.TestCase):
             f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains={{"*"="allow"}}',
             rewritten,
         )
+        self.assertFalse(
+            any('.filesystem.":root"' in item for item in rewritten)
+        )
+        self.assertFalse(
+            any('.network.domains."*"' in item for item in rewritten)
+        )
         self.assertIn("gpt-5.6-luna", rewritten)
         self.assertEqual(
             executor.validate_self_maintenance_codex_args(rewritten),
