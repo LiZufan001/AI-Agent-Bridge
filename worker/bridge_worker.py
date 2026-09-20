@@ -847,7 +847,7 @@ def codex_run(
 
     settings = CodexProviderSettings(
         codex_command=str(codex_argv[0]),
-        codex_execution_mode="full_access",
+        codex_execution_mode=str(kwargs.get("codex_execution_mode", "full_access")),
         codex_args=tuple(kwargs["codex_args"]),
         output_file=kwargs["output_file"],
         codex_argv=tuple(codex_argv),
@@ -1548,6 +1548,11 @@ def process_project(
     command_executor = command_executor_override(meta)
     codex_args, executor_profile = effective_codex_args(default_codex_args, meta)
 
+    codex_execution_mode = "full_access"
+    if self_maintenance_preflight is not None:
+        codex_args = executor.self_maintenance_codex_args(codex_args)
+        codex_execution_mode = executor.WORKSPACE_WRITE_MODE
+
     previous_status = status
     ready_snapshot = dict(state)
     run_id = f"run-{command_id:03d}-{uuid.uuid4().hex[:12]}"
@@ -1804,6 +1809,9 @@ def process_project(
                 )
             )
 
+    if self_maintenance_preflight is not None and preparation_error is None:
+        prompt = executor.add_self_maintenance_prompt_guard(prompt)
+
     codex_command = str(config.get("codex_command", "codex"))
     codex_argv = command_argv(codex_command)
 
@@ -1942,6 +1950,7 @@ def process_project(
         codex_kwargs: dict[str, Any] = {
             "codex_argv": codex_argv,
             "codex_args": codex_args,
+            "codex_execution_mode": codex_execution_mode,
             "workdir": workdir,
             "output_file": output_file,
             "stdout_log_path": stdout_log_path,
