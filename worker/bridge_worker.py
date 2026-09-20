@@ -1551,7 +1551,7 @@ def process_project(
     codex_execution_mode = "full_access"
     if self_maintenance_preflight is not None:
         codex_args = executor.self_maintenance_codex_args(codex_args)
-        codex_execution_mode = executor.WORKSPACE_WRITE_MODE
+        codex_execution_mode = executor.SELF_MAINTENANCE_PERMISSIONS_MODE
 
     previous_status = status
     ready_snapshot = dict(state)
