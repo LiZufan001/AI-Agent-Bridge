@@ -168,20 +168,34 @@ class ConfigAndProfileTests(unittest.TestCase):
                     }
                 )
 
-    def test_self_maintenance_rewrites_full_access_to_candidate_sandbox(self):
+    def test_self_maintenance_rewrites_full_access_to_permission_profile(self):
         rewritten = executor.self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
 
         self.assertNotIn(executor.FULL_ACCESS_FLAG, rewritten)
-        self.assertEqual(
-            rewritten[rewritten.index("--sandbox") + 1],
-            "workspace-write",
+        self.assertNotIn("--sandbox", rewritten)
+        self.assertNotIn("--ask-for-approval", rewritten)
+        self.assertIn('approval_policy="never"', rewritten)
+        self.assertIn(
+            f'default_permissions="{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}"',
+            rewritten,
         )
-        self.assertEqual(
-            rewritten[rewritten.index("--ask-for-approval") + 1],
-            "never",
+        self.assertIn(
+            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.extends=":workspace"',
+            rewritten,
         )
-        self.assertIn("sandbox_workspace_write.network_access=true", rewritten)
-        self.assertIn("sandbox_workspace_write.writable_roots=[]", rewritten)
+        self.assertIn(
+            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.":root"="read"',
+            rewritten,
+        )
+        self.assertIn("features.network_proxy=true", rewritten)
+        self.assertIn(
+            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.network.enabled=true',
+            rewritten,
+        )
+        self.assertIn(
+            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.network.domains."*"="allow"',
+            rewritten,
+        )
         self.assertIn("gpt-5.6-luna", rewritten)
         self.assertEqual(
             executor.validate_self_maintenance_codex_args(rewritten),
@@ -206,6 +220,10 @@ class ConfigAndProfileTests(unittest.TestCase):
                 'permissions.synthetic.filesystem.":root"="write"',
                 "-c",
                 'sandbox_workspace_write.writable_roots=["outside"]',
+                "-c",
+                'default_permissions="other"',
+                "-c",
+                "features.network_proxy=false",
             ]
         )
         self.assertNotIn('sandbox_mode="danger-full-access"', stripped)
@@ -214,12 +232,16 @@ class ConfigAndProfileTests(unittest.TestCase):
             'sandbox_workspace_write.writable_roots=["outside"]',
             stripped,
         )
+        self.assertNotIn('default_permissions="other"', stripped)
+        self.assertNotIn("features.network_proxy=false", stripped)
         self.assertEqual(
-            stripped.count("sandbox_workspace_write.writable_roots=[]"),
+            stripped.count(
+                f'default_permissions="{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}"'
+            ),
             1,
         )
 
-    def test_self_maintenance_sandbox_validation_fails_closed(self):
+    def test_self_maintenance_permission_profile_validation_fails_closed(self):
         with self.assertRaises(executor.WorkerError):
             executor.validate_self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
         with self.assertRaises(executor.WorkerError):
@@ -228,12 +250,23 @@ class ConfigAndProfileTests(unittest.TestCase):
                     "exec",
                     "--sandbox",
                     "workspace-write",
-                    "--ask-for-approval",
-                    "never",
                     "-c",
-                    "sandbox_workspace_write.network_access=true",
+                    'approval_policy="never"',
                 ]
             )
+
+        missing_root_read = [
+            item
+            for item in executor.self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
+        ]
+        root_rule = (
+            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.'
+            '":root"="read"'
+        )
+        index = missing_root_read.index(root_rule)
+        del missing_root_read[index - 1 : index + 1]
+        with self.assertRaises(executor.WorkerError):
+            executor.validate_self_maintenance_codex_args(missing_root_read)
 
     def test_profile_direct_model_precedes_config_model(self):
         profile = executor.executor_profile_from_args(

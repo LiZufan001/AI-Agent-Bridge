@@ -120,15 +120,15 @@ class CodexProviderTests(unittest.TestCase):
         self.assertEqual(result.provider_id, "codex")
         self.assertEqual(result.outcome, ExecutionOutcome.SUCCESS)
 
-    def test_workspace_write_mode_is_validated_and_invoked(self) -> None:
+    def test_permission_profile_mode_is_validated_and_invoked(self) -> None:
         runner = Mock(return_value=fake_codex_result())
-        sandbox_args = tuple(
+        permission_args = tuple(
             executor.self_maintenance_codex_args(list(FULL_ACCESS_ARGS))
         )
         provider = CodexExecutorProvider(
             self.settings(
-                codex_execution_mode=executor.WORKSPACE_WRITE_MODE,
-                codex_args=sandbox_args,
+                codex_execution_mode=executor.SELF_MAINTENANCE_PERMISSIONS_MODE,
+                codex_args=permission_args,
             ),
             runner=runner,
         )
@@ -137,8 +137,12 @@ class CodexProviderTests(unittest.TestCase):
 
         args = runner.call_args.kwargs["codex_args"]
         self.assertNotIn(executor.FULL_ACCESS_FLAG, args)
-        self.assertEqual(args[args.index("--sandbox") + 1], "workspace-write")
-        self.assertEqual(args[args.index("--ask-for-approval") + 1], "never")
+        self.assertNotIn("--sandbox", args)
+        self.assertIn('approval_policy="never"', args)
+        self.assertIn(
+            f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.":root"="read"',
+            args,
+        )
 
     def test_scope_artifacts_are_used_and_provider_is_pinned(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

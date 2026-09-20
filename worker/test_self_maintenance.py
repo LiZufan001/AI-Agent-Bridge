@@ -283,22 +283,19 @@ class SelfMaintenanceTests(unittest.TestCase):
             def fake_codex(**kwargs):
                 self.assertEqual(
                     kwargs["codex_execution_mode"],
-                    executor.WORKSPACE_WRITE_MODE,
+                    executor.SELF_MAINTENANCE_PERMISSIONS_MODE,
                 )
                 self.assertIn(
                     "SELF-MAINTENANCE CANDIDATE BOUNDARY",
                     kwargs["prompt"],
                 )
                 self.assertNotIn(executor.FULL_ACCESS_FLAG, kwargs["codex_args"])
-                self.assertEqual(
-                    kwargs["codex_args"][kwargs["codex_args"].index("--sandbox") + 1],
-                    "workspace-write",
-                )
-                self.assertEqual(
-                    kwargs["codex_args"][
-                        kwargs["codex_args"].index("--ask-for-approval") + 1
-                    ],
-                    "never",
+                self.assertNotIn("--sandbox", kwargs["codex_args"])
+                self.assertNotIn("--ask-for-approval", kwargs["codex_args"])
+                self.assertIn('approval_policy="never"', kwargs["codex_args"])
+                self.assertIn(
+                    f'permissions.{executor.SELF_MAINTENANCE_PERMISSION_PROFILE}.filesystem.":root"="read"',
+                    kwargs["codex_args"],
                 )
                 protected = self.candidate / "projects" / "owned" / "state.json"
                 protected.parent.mkdir(parents=True)

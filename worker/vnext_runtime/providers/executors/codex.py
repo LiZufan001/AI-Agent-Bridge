@@ -161,7 +161,7 @@ class CodexExecutorProvider:
         return "codex"
 
     def validate_environment(self, request: ExecutionRequest) -> None:
-        """Validate ordinary full access or the CP17 Candidate sandbox."""
+        """Validate ordinary full access or the CP17 maintenance permission profile."""
 
         self._validate_request(request)
         config = {
@@ -169,7 +169,7 @@ class CodexExecutorProvider:
             "codex_args": list(self._settings.codex_args),
         }
         try:
-            if self._settings.codex_execution_mode == executor.WORKSPACE_WRITE_MODE:
+            if self._settings.codex_execution_mode == executor.SELF_MAINTENANCE_PERMISSIONS_MODE:
                 executor.validate_self_maintenance_codex_args(
                     list(self._settings.codex_args)
                 )
