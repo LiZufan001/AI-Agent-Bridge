@@ -127,6 +127,9 @@ class OnlineFastPathTests(unittest.TestCase):
             "STAGED GENERATION CONTRACT:",
             "CAPABILITY RESOLUTION:",
             "BLOCKER PROGRESSION:",
+            "AUTOMATION SELF-CONTROL:",
+            "RECOVERY PREEMPTION:",
+            "LIVENESS ALERTS:",
             "expected_generation = G + 1",
             "deferred-this-pass",
         ):

@@ -54,13 +54,17 @@ If the eligible set changes because a project becomes paused, terminal, running/
 
 Round-robin may be preempted only by a current condition whose delay would make safe operation or Owner intent materially worse. Valid preemption classes are:
 
-- `RECOVERY_REQUIRED`, ambiguous execution, or an unknown external side effect that must be reconciled before safe continuation;
-- an active safety/control-plane integrity problem that can make further execution unsafe;
+- a **fresh** `RECOVERY_REQUIRED`, ambiguous execution, or unknown external side-effect episode that requires bounded reconciliation before safe continuation;
+- an active safety/control-plane integrity problem that can make further execution unsafe across the portfolio;
 - explicit **new** Owner direction/control evidence that changes what is permitted or resolves/creates an Owner-only blocker.
+
+A project-local recovery condition is fresh when its canonical recovery identity/state changed within the current Scheduled interval, or when newer durable recovery evidence materially changes the safe next action. Give that episode one bounded reconciliation opportunity. If the same project-local recovery remains unchanged for a complete Scheduled interval, no newer recovery evidence exists, and compact reconciliation establishes that unrelated projects can proceed safely, classify it as `recovery-awaiting-evidence` and return attention to ordinary rotation. Do not let an unchanged project-local recovery monopolize every later pass.
+
+A recovery condition may continue to preempt while current evidence shows a control-plane-wide/shared-resource safety impact, an unresolved ambiguous external side effect that could affect unrelated work, or genuinely new recovery evidence that requires another bounded reconciliation.
 
 Ordinary correctness work, normal security hardening inside an ACTIVE Goal, project name, conversational habit, an unfinished Goal, a fresh ordinary SUCCESS Report, or owner-action completion awaiting routine verification/resume are **not** preemption reasons.
 
-If multiple current preemption candidates exist, choose the one with the strongest immediate safety/Owner consequence; use `priority_rank` only as a deterministic tie-breaker among otherwise equivalent preemption candidates. After the preempting condition is resolved, return to the time-derived ordinary rotation. Do not create compensation passes or a second queue.
+If multiple current preemption candidates exist, choose the one with the strongest immediate safety/Owner consequence; use `priority_rank` only as a deterministic tie-breaker among otherwise equivalent preemption candidates. After the preempting condition is resolved or becomes an unchanged project-local `recovery-awaiting-evidence` condition, return to the time-derived ordinary rotation. Do not create compensation passes or a second queue.
 
 ## Compact attention classification
 
@@ -71,7 +75,7 @@ At minimum:
 - `HUMAN_REQUIRED` + newest linked event still `AWAITING_OWNER` / `OWNER_IN_PROGRESS` -> genuine owner dependency, no ordinary deep review;
 - `HUMAN_REQUIRED` + `OWNER_REPORTED_DONE/PENDING` -> ordinary eligible verification/reconciliation candidate, not `blocked-owner`;
 - `HUMAN_REQUIRED` + `OWNER_REPORTED_DONE/VERIFIED` -> ordinary eligible resume/reconciliation candidate, not `blocked-owner`;
-- `RECOVERY_REQUIRED` / `FAILED` -> recovery/ambiguous preemption candidate;
+- fresh `RECOVERY_REQUIRED` / `FAILED` -> recovery/ambiguous preemption candidate; unchanged project-local recovery beyond one complete Scheduled interval -> `recovery-awaiting-evidence`, no repeated preemption;
 - `DONE` -> accounted/terminal unless contradictory current evidence exists;
 - owner-paused -> `paused-owner`, no ordinary development.
 
@@ -113,7 +117,8 @@ Before ending a Scheduled pass, give one concise disposition for every Owner-sel
 - `verification-pending` — Owner work is reported done but technical verification remains;
 - `resume-pending` — Owner work is verified/resolved but Protocol-legal resume/publication has not yet completed;
 - `paused-owner` — explicit Owner pause remains in force;
-- `recovery/ambiguous` — safe continuation requires recovery or unresolved evidence;
+- `recovery/ambiguous` — fresh recovery/uncertainty is under bounded reconciliation;
+- `recovery-awaiting-evidence` — project-local recovery is unchanged and remains blocked, while unrelated projects may continue ordinary rotation;
 - `deferred-this-pass` — eligible or potentially reviewable non-focus project intentionally left for its later rotation slot;
 - `accounted/terminal` — compact state is terminal and needs no current deep work.
 
