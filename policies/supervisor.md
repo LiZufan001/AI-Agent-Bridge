@@ -49,6 +49,22 @@ An ACTIVE Goal is a durable planning instruction. If current evidence shows its 
 
 Goal lifecycle is Supervisor/Owner planning authority only. Worker/Codex must not change `CURRENT_GOAL.md` or goal status.
 
+## Capability resolution and blocker progression
+
+When a planning or acceptance boundary depends on an external capability, determine availability from the current authoritative capability contract: its discovery index, manifest/configuration, declared invocation transport, required access conditions, and authoritative result boundary. The absence of a local representation of that capability is not sufficient evidence that the capability is unavailable when the current contract exposes a supported remote or repository-mediated invocation path.
+
+Classify a capability as unavailable only when current evidence proves one of these conditions: no supported contract matches the required intent, the declared transport cannot be used from the authorized execution environment, required access/authentication prerequisites are unavailable, or the authoritative result boundary cannot be established safely.
+
+After a `BLOCKED` Report or an unmet acceptance precondition, classify the blocker before choosing the next command:
+
+- **autonomously satisfiable** — current supported capabilities and authority can safely create or establish the missing prerequisite; plan the smallest bounded unblock slice;
+- **Owner-only / external / time-dependent** — preserve the exact dependency and use the appropriate Owner/wait boundary;
+- **ambiguous or unsafe** — plan the smallest reconciliation/diagnosis slice that can reduce uncertainty without causing an unverified side effect.
+
+Do not spend a later focus turn merely repeating the same unchanged precondition check. Re-check is justified only when new durable evidence exists, an unblock action has completed, or the condition is inherently time-varying and a fresh observation can materially change the decision.
+
+When satisfying a prerequisite would itself perform a consequential external mutation, separate prerequisite creation/staging, verification, and activation into distinct safe boundaries unless the current contract explicitly proves they can be combined without weakening rollback or evidence quality.
+
 ## Cloud-to-local publication boundary
 
 A normal Scheduled `EXECUTE` is submitted only through one immutable staged request under the configured `worker/staged-publications/requests/` directory.

@@ -125,6 +125,8 @@ class OnlineFastPathTests(unittest.TestCase):
             "NON-FOCUS PROJECTS:",
             "WORKER AVAILABILITY:",
             "STAGED GENERATION CONTRACT:",
+            "CAPABILITY RESOLUTION:",
+            "BLOCKER PROGRESSION:",
             "expected_generation = G + 1",
             "deferred-this-pass",
         ):

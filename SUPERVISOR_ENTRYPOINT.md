@@ -72,6 +72,8 @@ After a Worker/Codex `SUCCESS`, follow `policies/success-review.md`: verify the 
 
 If the ACTIVE Goal remains incomplete and current evidence identifies a bounded Executor-doable slice, that is valid work for the project's next ordinary rotation slot unless a narrow preemption condition applies. Avoid the deadlock `ACTIVE Goal -> wait for new Report -> no command -> no new Report` without letting one long Goal monopolize Scheduled attention.
 
+When a focus is blocked by a missing prerequisite or required capability, apply `policies/supervisor.md` capability-resolution and blocker-progression rules before deciding that work cannot continue. A later focus should advance an autonomously satisfiable blocker through the smallest safe unblock slice rather than repeat the same unchanged precondition check.
+
 ## Publication boundary
 
 Only publish for the focus project when current evidence establishes useful executable work, canonical state permits it, `worker_available=true`, and durable Owner execution control is valid `auto`.

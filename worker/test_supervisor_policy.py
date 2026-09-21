@@ -78,6 +78,27 @@ class SupervisorPolicyCharacterizationTests(unittest.TestCase):
         self.assertIn("Canonical `HUMAN_REQUIRED` by itself is not enough", entrypoint)
         self.assertIn("`HUMAN_REQUIRED -> COMMAND_READY` resume", entrypoint)
 
+    def test_capability_resolution_and_blocker_progression_are_generic(self):
+        policy = (ROOT / "policies" / "supervisor.md").read_text(encoding="utf-8")
+        reconciliation = (ROOT / "policies" / "source-reconciliation.md").read_text(encoding="utf-8")
+        entrypoint = (ROOT / "SUPERVISOR_ENTRYPOINT.md").read_text(encoding="utf-8")
+        prompt = (
+            ROOT / "docs" / "automation" / "bridge-portfolio-supervisor-current-prompt.md"
+        ).read_text(encoding="utf-8")
+
+        for required in (
+            "authoritative capability contract",
+            "smallest bounded unblock slice",
+            "same unchanged precondition check",
+        ):
+            self.assertIn(required, policy)
+        self.assertIn("authoritative discovery/manifest/configuration", reconciliation)
+        self.assertIn("capability-resolution and blocker-progression rules", entrypoint)
+        self.assertIn("CAPABILITY RESOLUTION:", prompt)
+        self.assertIn("BLOCKER PROGRESSION:", prompt)
+        self.assertIn("smallest bounded unblock slice", prompt)
+        self.assertIn("same unchanged precondition check", prompt)
+
     def test_generic_policy_characterizes_luna_bug_escalation(self):
         policy = (ROOT / "policies" / "supervisor.md").read_text(encoding="utf-8")
         for required in (

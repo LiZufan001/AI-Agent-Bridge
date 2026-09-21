@@ -18,8 +18,9 @@ Before publishing executable work, changing Goal lifecycle, or escalating an Own
 4. read the current repository source/history and relevant CI/release/artifact evidence;
 5. read the newest applicable Owner feedback/action and accepted external/device/production evidence for the same boundary;
 6. classify the combined evidence as aligned current state, compatible forward progress, benign drift, accepted repair/release/rollout, conflicting/ambiguous, or insufficient;
-7. plan from the current proven source and strongest proven milestone;
-8. never fabricate a report, command, test, rollout, release, owner action, device result, notification or Goal completion.
+7. when a required external capability is material to the decision, resolve its current authoritative discovery/manifest/configuration and declared invocation/result contract before calling it unavailable;
+8. plan from the current proven source and strongest proven milestone;
+9. never fabricate a report, command, test, rollout, release, owner action, device result, notification or Goal completion.
 
 A status string or capability claim is current only when its binding evidence is current for the decision being made.
 
