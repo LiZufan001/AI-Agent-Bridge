@@ -82,7 +82,7 @@ Proceed only if the helper exits successfully and the returned state is `CODEX_R
 
 If the claim fails because another Codex run is active, the state changed, finalization is in progress, human recovery is required, or another non-supersedable command is canonical: **do not execute the task**. Report the conflict to the user.
 
-An unclaimed normal `scheduled_chatgpt` command may be superseded by this manual lane. The helper records that fact; do not delete or overwrite the old command file.
+An unclaimed normal `scheduled_chatgpt` command may be superseded by this manual lane. The helper records that fact; the superseded command file remains immutable.
 
 ## Step 3 — Execute exactly the claimed manual command
 
@@ -155,7 +155,7 @@ If the Codex work already finished but `finish` cannot safely publish because Gi
 
 ## Cleanup
 
-Temporary command/report files may be deleted after successful publication. Never delete historical `commands/` or `reports/` entries from the Bridge project as part of this skill.
+Temporary command/report files may be deleted after successful publication. Canonical `commands/` and `reports/` entries are append-only and are never cleanup targets for this skill.
 
 ## Default final response
 
