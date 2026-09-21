@@ -1,26 +1,10 @@
 # Codex run finalization lifecycle
 
-## Failure mode and confirmed hang
+## Completion boundary
 
-Before this hardening, `bridge_worker.py` launched the configured Codex shim as
-one `Popen` tree with `stdin`, `stdout`, and `stderr` set to `PIPE`. The Worker
-then repeatedly called `process.communicate()`. The only path to reading
-`--output-last-message` and publishing a report was for `communicate()` to
-return.
+Codex finalization does not use stdout/stderr stream EOF as proof that the run is complete. A descendant process may retain inherited stream handles after the root Codex wrapper exits, especially on Windows, so stream closure is not a reliable lifecycle boundary.
 
-That made stream EOF an accidental completion prerequisite. On Windows, a
-Codex-started descendant can inherit a stdout/stderr write handle and later
-outlive or detach from the root wrapper. Even after `cmd.exe`, `node.exe`, and
-`codex.exe` exit, the descendant keeps the pipe open, so `communicate()` still
-cannot return. The four-hour timeout only delays the same structural failure;
-the Network Guard cleanup path also used a second `communicate()` and could hit
-the same wait.
-
-Historical failure evidence showed that Codex may already have written a valid
-successful `BRIDGE_EXECUTION_JSON` final message while the Worker remains in
-`communicate()` because a descendant process retains inherited stream handles.
-The descendant must be handled through the process-boundary cleanup path before
-the Worker can finish finalization.
+The Worker records the final message and process identity in the run-scoped runtime directory, observes the root process separately, and applies bounded descendant/process-boundary cleanup before report finalization. A valid `BRIDGE_EXECUTION_JSON` message is evaluated together with the run identity and lifecycle state; retained stream handles cannot keep the canonical run open indefinitely.
 
 ## Current completion model
 
