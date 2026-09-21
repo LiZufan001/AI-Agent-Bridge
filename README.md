@@ -43,10 +43,10 @@ mailbox literals in a scanner regression test. It contains no private terms or
 matched-value digests and is not release authority. Identifier hashes can be dictionary-matched: hashing is
 not anonymization. In-process `audit()` details contain file locations and file
 content hashes, and remain private. The exact exception format is now
-`path`, `line`, `rule`, `file_sha256`, `reason`; legacy `match_sha256` entries are
-rejected, not silently reused. Renew exceptions only after reviewing the exact bytes.
+`path`, `line`, `rule`, `file_sha256`, `reason`; `match_sha256` is not an accepted
+exception field. Renew exceptions only after reviewing the exact bytes.
 
-`validate_state.py` normalizes its input path to an absolute root; runtime entry points require explicit absolute paths. Its strict State audit has two fail-closed tiers: every non-terminal, enabled, or Owner-selected project uses the full operational `project_view` invariants; a project is archival only when Protocol says it is terminal (`DONE`/`FAILED`), `active_run` is null, it is explicitly disabled on every configured host, and it is not Owner-selected. Archival validation still checks state/Protocol, goal absence, Owner event identity/root/link/order, staged-publication exclusion, privacy, and immutable bytes; it only stops treating historical blocker-key corrections as current resume authority. Re-enabling or re-selecting the project immediately restores full operational validation.
+`validate_state.py` normalizes its input path to an absolute root; runtime entry points require explicit absolute paths. Its strict State audit has two fail-closed tiers: every non-terminal, enabled, or Owner-selected project uses the full operational `project_view` invariants; a project is archival only when Protocol says it is terminal (`DONE`/`FAILED`), `active_run` is null, it is explicitly disabled on every configured host, and it is not Owner-selected. Archival validation still checks state/Protocol, goal absence, Owner event identity/root/link/order, staged-publication exclusion, privacy, and immutable bytes; archival blocker-key corrections do not become current resume authority. Re-enabling or re-selecting the project immediately restores full operational validation.
 
 In a private staging workspace, inspect a prospective clean first commit and all reachable history **before any public upload**:
 
