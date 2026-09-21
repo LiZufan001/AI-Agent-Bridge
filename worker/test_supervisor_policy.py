@@ -99,6 +99,25 @@ class SupervisorPolicyCharacterizationTests(unittest.TestCase):
         self.assertIn("smallest bounded unblock slice", prompt)
         self.assertIn("same unchanged precondition check", prompt)
 
+    def test_scheduler_self_control_recovery_decay_and_alerting_are_explicit(self):
+        supervisor = (ROOT / "policies" / "supervisor.md").read_text(encoding="utf-8")
+        attention = (ROOT / "policies" / "portfolio-attention.md").read_text(encoding="utf-8")
+        alerts = (ROOT / "policies" / "alerts.md").read_text(encoding="utf-8")
+        entrypoint = (ROOT / "SUPERVISOR_ENTRYPOINT.md").read_text(encoding="utf-8")
+        prompt = (
+            ROOT / "docs" / "automation" / "bridge-portfolio-supervisor-current-prompt.md"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("must not disable, pause, delete, reschedule", supervisor)
+        self.assertIn("recovery-awaiting-evidence", attention)
+        self.assertIn("Do not let an unchanged project-local recovery monopolize every later pass", attention)
+        self.assertIn("never disable, pause, reschedule", alerts)
+        self.assertIn("Supervisor automation boundary", entrypoint)
+        self.assertIn("AUTOMATION SELF-CONTROL:", prompt)
+        self.assertIn("RECOVERY PREEMPTION:", prompt)
+        self.assertIn("LIVENESS ALERTS:", prompt)
+        self.assertIn("alert_delivery_failed", prompt)
+
     def test_generic_policy_characterizes_luna_bug_escalation(self):
         policy = (ROOT / "policies" / "supervisor.md").read_text(encoding="utf-8")
         for required in (
