@@ -20,6 +20,8 @@ Alerts are notification-only. Never kill Codex, mutate `state.json`, rerun a com
 
 Deduplicate the same abnormal episode. A short recovery notice is allowed after clear recovery but is not required.
 
+For the Scheduled Supervisor, a new liveness-alert episode is identified from the fresh canonical abnormal state/identity observed during the current Scheduled interval. Attempt at most one independent Owner notification for that episode using the configured external route. Later passes must not resend solely because the canonical abnormal state is unchanged. If notification delivery is unavailable or fails, report that alert-delivery status as non-canonical evidence; never disable, pause, reschedule, or otherwise mutate the Supervisor automation as a reaction to alert failure.
+
 ## Worker anomaly alerts
 
 The local Worker may send one detailed secret-safe alert when it has run-specific evidence for a network-guard interruption, recovery transition, expired lease, deferred-recovery conflict, or unsafe recovery exception.
