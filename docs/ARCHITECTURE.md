@@ -16,4 +16,4 @@ The Supervisor performs compact portfolio accounting and one focused review acco
 
 Engine repository updates are independent of State synchronization. Code/assets/schemas are located from Engine; `bridge_root` is the State Git top level. The external Owner gate is not duplicated in either repository. Its location is private non-secret configuration, independently pinned by a local deployment binding.
 
-See `ENGINE_STATE_BOUNDARY.md` for every persistent and ephemeral location. `PROTOCOL.md` and `protocol/v2/` remain protocol authority. Historical implementation architecture documents retained here explain generic components only; they do not prove that a particular helper, privileged Windows service or production rollout is installed or accepted. Actual instance facts belong to State and current runtime evidence.
+See `ENGINE_STATE_BOUNDARY.md` for every persistent and ephemeral location. `PROTOCOL.md` and `protocol/v2/` remain protocol authority. Architecture documents explain generic components and contracts; concrete helper/service installation and production rollout facts belong to State and current runtime evidence.
