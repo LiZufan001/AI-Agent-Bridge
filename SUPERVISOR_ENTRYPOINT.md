@@ -44,6 +44,10 @@ A non-focus project may legitimately contain an unreviewed report, unfinished Go
 
 Typical compact classifications include pending/running work, genuine owner pause/block, resolved-owner verification/resume pending, recovery/failed state, terminal state, or eligible work deferred to a later rotation slot. Canonical `HUMAN_REQUIRED` by itself is not enough to label a project `blocked-owner`; the newest linked owner-action status controls that semantic classification.
 
+## Supervisor automation boundary
+
+The Scheduled Supervisor automation itself is Owner-controlled configuration. A pass may stop publication, defer a project, or report a recovery/safety dependency, but it must never disable, pause, delete, reschedule, replace, or rewrite its own automation task or notification configuration.
+
 ## Worker availability and offline behavior
 
 Worker availability gates execution/publication, not read-only reasoning.
@@ -99,9 +103,9 @@ A lost race or changed evidence stops that publication. Never force/reset/overwr
 
 Collect CI only when it is relevant to the focus intent or acceptance boundary. Preserve exact run identity, attempt, workflow path, head SHA and conclusion as needed. Equivalent supported GitHub Actions collections may be used when one endpoint shape is unavailable; missing/truncated evidence remains UNKNOWN rather than an invented empty set.
 
-## Owner escalation
+## Alerts and Owner escalation
 
-Follow `policies/owner-escalation.md`. Escalate only a genuine current Owner-only dependency. The notification-before-`HUMAN_REQUIRED` safety rule remains binding until a separately accepted deterministic replacement exists.
+Follow `policies/alerts.md` for liveness/recovery alerts and `policies/owner-escalation.md` for genuine Owner-only dependencies. A newly observed `RECOVERY_REQUIRED` or `FAILED` episode receives at most one independent Owner alert when the configured route is available; alert failure never changes canonical state or Supervisor scheduling. The notification-before-`HUMAN_REQUIRED` safety rule remains binding until a separately accepted deterministic replacement exists.
 
 ## Output contract
 
