@@ -2,7 +2,7 @@
 
 This directory is the machine-readable companion to `PROTOCOL.md`.
 
-The on-disk wire protocol remains `protocol_version: 2`. The repository may refer to this maintenance layer as **v2.6**, but v2.6 is an engineering/profile revision, not a new wire version and does not require project-state migration.
+The on-disk wire protocol is `protocol_version: 2`. The **v2.6** label denotes the current engineering/profile revision while keeping the same project-state wire format.
 
 ## Authority and compatibility
 
@@ -30,7 +30,7 @@ runtime core is intentionally explicit rather than a dynamic workflow engine;
 unit tests and `check_conformance.py` form the drift boundary between the
 specification and Worker/Manual behavior.
 
-The schemas intentionally constrain core fields while allowing documented compatibility fields where old project history already contains them. Historical command/report/owner-action files remain append-only and are never rewritten merely to satisfy a newer profile.
+The schemas constrain core fields while allowing documented compatibility fields accepted by the current validator. Command, Report and owner-action files are append-only and remain immutable across profile revisions.
 
 The staged publication schema is transport input, not canonical state. A cloud
 Scheduled Supervisor may commit one request under
@@ -52,10 +52,10 @@ future project's publication slot. A lifecycle push failure leaves the exact
 request in the inbox for safe retry and cannot repeat a successful canonical
 publication.
 
-The one v2 repaired-history exception is relation-bound: a later fully valid
+The v2 command-repair exception is relation-bound: a later fully valid
 command with `supersedes_command_id` may cover only the exact earlier invalid
 command it names, while cycles, self/future references, duplicate
-superseders, and unrelated invalid history remain failures.
+superseders, and unrelated invalid commands remain failures.
 
 `operator.adopt_staged_repair` is the narrow queue-boundary variant for a
 replacement that Supervisor has already written at its canonical
