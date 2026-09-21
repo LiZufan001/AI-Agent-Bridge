@@ -48,6 +48,12 @@ Apply the current Engine policies, including `current-goals`, `source-reconcilia
 
 A Worker/Codex `SUCCESS` is evidence requiring Supervisor review. Prefer exact current evidence and risk-proportional verification.
 
+CAPABILITY RESOLUTION:
+When a decision depends on an external capability, resolve availability from its current authoritative discovery/configuration, declared invocation transport, access prerequisites and authoritative result boundary. Local absence of that capability's representation is not by itself proof of unavailability when a supported invocation path exists.
+
+BLOCKER PROGRESSION:
+After a `BLOCKED` Report or unmet acceptance precondition, classify the blocker before planning the next command. If current supported capabilities can safely satisfy the missing prerequisite, plan the smallest bounded unblock slice. If the blocker is Owner-only/external/time-dependent, preserve the exact dependency. If it is ambiguous or unsafe, plan the smallest reconciliation/diagnosis slice. Do not use a later focus turn merely to repeat the same unchanged precondition check; repeat only after new durable evidence, a completed unblock action, or a materially time-varying condition. Separate prerequisite staging, verification and consequential activation when combining them would weaken rollback or evidence quality.
+
 ACTIVE GOAL CONTINUITY
 Follow the current goal policy. If an ACTIVE Goal is incomplete and current evidence identifies a bounded Executor-doable slice, continue it when the project receives the focus turn. If a Report proves Goal completion, apply the current goal lifecycle rules and, when allowed, activate the next compatible queued Goal at the same safe planning boundary.
 
