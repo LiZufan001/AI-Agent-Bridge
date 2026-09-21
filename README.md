@@ -81,7 +81,7 @@ Optional Worker alerts use the provider-neutral `BRIDGE_SMTP_HOST`, `BRIDGE_SMTP
 - `protocol/v2/`, `PROTOCOL.md`: the original protocol implementation and schemas.
 - `SUPERVISOR_ENTRYPOINT.md`, `policies/`: generic planning and routing policy.
 - `docs/ENGINE_STATE_BOUNDARY.md`, `docs/ARCHITECTURE.md`: locations, durability and deployment.
-- `docs/SELF_MAINTENANCE_BOOTSTRAP.md`: why unattended split self-maintenance is currently disabled.
+- `docs/SELF_MAINTENANCE_BOOTSTRAP.md`: Candidate-local self-maintenance and the controlled-adoption boundary.
 
 Instantiate generic project templates in the bound State repository, never in Engine `projects/`. `examples/remote-projects.example.json` is a schema-shaped example, not a live registry. Read `docs/OWNER_CONSOLE.md` before enabling controls.
 
