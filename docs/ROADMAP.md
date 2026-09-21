@@ -1,6 +1,6 @@
 # Bridge roadmap
 
-This file tracks **future** engineering direction. Current behavior is defined by `PROTOCOL.md`, `protocol/v2/`, `SUPERVISOR_ENTRYPOINT.md`, `policies/`, `docs/ARCHITECTURE.md`, and the actual Worker/runtime source. Historical phase documents, commands, reports, and acceptance records are evidence of how the system evolved; they are not current architecture authority.
+This file tracks **future** engineering direction. Current behavior is defined by `PROTOCOL.md`, `protocol/v2/`, `SUPERVISOR_ENTRYPOINT.md`, `policies/`, `docs/ARCHITECTURE.md`, and the actual Worker/runtime source.
 
 ## Current baseline
 
@@ -27,17 +27,17 @@ The Worker remains authoritative for actual host capacity, same-project serializ
 
 Use ordinary Scheduled passes and exact canonical evidence to verify that:
 
-- one eligible focus can progress without any review/Shadow dependency;
+- one eligible focus can progress through the supported Supervisor → gateway → Worker path;
 - non-focus projects are honestly reported as deferred for that pass rather than deeply scanned;
-- malformed or unavailable optional/historical evidence cannot veto unrelated legal Online work;
+- malformed or unavailable optional evidence cannot veto unrelated legal Online work;
 - Owner pause/unreadable control, active execution, source uncertainty, and unknown external side effects still fail closed at the correct project boundary;
 - a published command proceeds through the existing gateway/Worker/Codex/Report chain without bypassing Protocol-v2 safety.
 
-Natural production evidence, not fixtures or migration receipts, is the acceptance authority for these claims.
+Natural production evidence is the acceptance authority for these claims.
 
 ### 2. Keep one fact in one authority
 
-Continue removing duplicated mutable facts from project prose, dashboards, migration notes, and helper caches. Mutable facts such as execution permission, canonical state, current Goal, heartbeat freshness, runtime slots, and source HEAD must be read from their current authority when a decision depends on them.
+Continue removing duplicated mutable facts from project prose, dashboards and helper caches. Mutable facts such as execution permission, canonical state, current Goal, heartbeat freshness, runtime slots, and source HEAD must be read from their current authority when a decision depends on them.
 
 Read-only projections should remain rebuildable and incapable of authorizing workflow transitions.
 
@@ -45,13 +45,13 @@ Read-only projections should remain rebuildable and incapable of authorizing wor
 
 The active `engine-maintenance` Goal is the real-time local Bridge Dashboard. Its useful direction is a local, read-only operational view over existing authorities: Worker freshness, active runs/slots, project state/severity, current model profile, durations, and human-readable blocked/waiting reasons. It must not become another workflow database or write surface.
 
-### 4. Retire obsolete deployment residue when independently accessible
+### 4. Keep operator-managed environment cleanup evidence-driven
 
-Repository-level Review/Shadow machinery is retired from the current architecture. Remaining legacy external installation residue may be physically removed only from an environment that can independently verify service state, paths, permissions, and credential ownership. Do not treat repository cleanup as proof that an external daemon, unit file, directory, or credential has been removed.
+Environment cleanup may remove external services, directories or credentials only when the operator can independently verify service state, paths, permissions and credential ownership. Repository cleanup alone is not evidence that an external resource has been removed.
 
 ### 5. Preserve recovery and self-maintenance safety
 
-Keep the outer-controller/self-maintenance safety properties already earned: exact Git identities, non-force forward integration/rollback, admission drain, health gating, preserved canonical history, and no blind replay after uncertain side effects. Remove historical phase-specific coupling when it no longer protects one of those real invariants.
+Keep exact Git identities, non-force forward integration/rollback, admission drain, health gating, preserved canonical history, and no blind replay after uncertain side effects.
 
 ### 6. Wire-protocol changes only for real semantic need
 
