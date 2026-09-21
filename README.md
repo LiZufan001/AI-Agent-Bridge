@@ -83,7 +83,7 @@ Optional Worker alerts use the provider-neutral `BRIDGE_SMTP_HOST`, `BRIDGE_SMTP
 - `docs/ENGINE_STATE_BOUNDARY.md`, `docs/ARCHITECTURE.md`: locations, durability and deployment.
 - `docs/SELF_MAINTENANCE_BOOTSTRAP.md`: why unattended split self-maintenance is currently disabled.
 
-Copy generic project templates to a **new State repository**, never to Engine `projects/`. `examples/remote-projects.example.json` is a schema-shaped example, not a live registry. Read `docs/OWNER_CONSOLE.md` before enabling controls. This candidate is not a declaration that any existing production deployment has been replaced.
+Instantiate generic project templates in the bound State repository, never in Engine `projects/`. `examples/remote-projects.example.json` is a schema-shaped example, not a live registry. Read `docs/OWNER_CONSOLE.md` before enabling controls.
 
 ## License
 
