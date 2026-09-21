@@ -1,5 +1,7 @@
 # Remote project registry
 
-Engine publishes `../examples/remote-projects.example.json` and the generic loader. Each State instance owns `worker/remote-projects.json`: concrete product repository, workdir, branch, execution enabled flag and original per-project policies. Registry execution `enabled` is not Supervisor Owner selection; that remains `supervisor/portfolio.json`.
+Engine publishes `../examples/remote-projects.example.json` and the generic loader. Each State instance owns `worker/remote-projects.json`: concrete product repository, workdir, execution-enabled flag and per-project runtime policy. Registry execution `enabled` is separate from Supervisor Owner selection in `supervisor/portfolio.json`.
 
-Preserve product repository identities and verify each workdir independently. Reject State/running Engine as executor workdirs. Split unattended self-maintenance is disabled until an independently accepted containment boundary is proven. Do not turn a maintenance checkout into another State authority or synchronize Engine changes by pulling State.
+Preserve product repository identities and verify each workdir independently. State and the running Engine are not executor workdirs.
+
+Bridge self-maintenance uses an independent Candidate-local maintenance checkout. Candidate execution is confined to its workspace and normal TEMP, while the outer authority owns Git integration, production restart and controlled adoption. Unattended adoption is disabled.
