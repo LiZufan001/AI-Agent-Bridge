@@ -50,7 +50,7 @@ projects/<project-id>/
 
 `state.json` is the only canonical pointer to the current project state.
 
-Published command, report, and owner-action files are append-only history. Never overwrite an old id to revise history. Corrections/progress use new ids. Stale/orphan historical files are harmless when canonical state does not point to them.
+Published command, Report and owner-action files are append-only. Existing ids are immutable; corrections and progress use new ids. Canonical `state.json` determines which command/run boundary is active.
 
 Command and owner-action ids are monotonically increasing within a project; gaps are allowed.
 
@@ -140,8 +140,7 @@ COMMAND_READY/G/C/R/active_run=null
 ```
 
 The new command has `source=manual_chatgpt`, `kind=EXECUTE`, and
-`supersedes_command_id=C`. The old scheduled command file is immutable and
-remains inspectable. This event never interrupts or claims the old command;
+`supersedes_command_id=C`. The superseded scheduled command file is immutable and remains inspectable. This event never interrupts or claims that command;
 the ordinary Worker re-reads the canonical pointer and can claim only `N`.
 The CAS snapshot must still prove the old command is a fully valid canonical
 `scheduled_chatgpt`/`EXECUTE` command with matching generation/report identity,
@@ -206,7 +205,7 @@ This is the stale-command guard.
 
 The optional `withdraws_command_id` metadata field is used by the atomic
 withdraw-and-manual-start replacement to explicitly name the earlier command
-the Owner withdrew before execution. It is a historical withdrawal reference,
+the Owner withdrew before execution. It is an immutable withdrawal reference,
 not a `supersedes_command_id` relation, and the two fields must not appear
 together.
 
@@ -239,9 +238,7 @@ all of the following:
 - the complete command contract, source, kind, executor override, and body
   pass normal Protocol-v2 validation.
 
-`supersedes_command_id` is an immutable historical replacement relation.  It
-does not mean that the old command was claimed, executed, successful, or
-failed.  Ordinary commands omit it; an operator repair replacement must use
+`supersedes_command_id` is an immutable append-only replacement relation. It does not mean that the superseded command was claimed, executed, successful, or failed.  Ordinary commands omit it; an operator repair replacement must use
 it.  A relation must point to an earlier existing command, must not
 self-reference, and must not form a cycle.  The repair command is published
 with the new command file and the canonical state in one existing Git CAS
@@ -268,8 +265,7 @@ SHA. The target must be the current unclaimed command with no report and a
 deterministic Protocol-v2 contract error; the staged replacement must have no
 report, be a complete normal command, use a new monotonic id, match
 `based_on_report=R` and `expected_generation=G+1`, and use
-`supersedes_command_id=C`. The relation must be historical, non-self,
-non-future, acyclic, and free of conflicting superseders. Any changed state,
+`supersedes_command_id=C`. The relation must point to an earlier existing command and be non-self, non-future, acyclic, and free of conflicting superseders. Any changed state,
 generation, hash, or byte causes a fail-closed CAS refusal.
 
 This transition never overwrites an existing command. Its `publish_cas`
@@ -380,15 +376,10 @@ When canonical state is `REPORT_READY`, the Supervisor:
 7. only if the same `REPORT_READY/G/R` snapshot remains canonical, CAS-updates state to point to the command;
 8. successful publication sets canonical generation to the command's expected generation.
 
-A lost race may leave an orphan command file. Do not delete/overwrite it merely to make history look clean; the Worker ignores it because `state.json` does not point to it.
+A lost race may leave an orphan command file. The orphan command remains immutable; the Worker ignores it because `state.json` does not point to it.
 
 If a later command explicitly repairs an earlier deterministic-invalid v2
-command, repository conformance may retain the old command as immutable
-history only when the old command is no longer canonical, there is exactly
-one later fully valid superseder, the relation names the exact old command,
-and the relation is acyclic and within the canonical history.  This is an
-exception for that explicit relation only.  An unrelated invalid historical
-command remains a conformance failure.
+command, repository conformance may retain the superseded command as immutable append-only evidence only when it is no longer canonical, there is exactly one later fully valid superseder, the relation names that exact command, and the relation is acyclic within the canonical command sequence. This exception applies only to that explicit relation. An unrelated invalid command remains a conformance failure.
 
 Scheduled Supervisor must not publish a normal competing command while canonical state is `COMMAND_READY`, `CODEX_RUNNING`, `FINALIZING`, `FINAL_REPORT_READY`, `RECOVERY_REQUIRED`, `FAILED`, or `DONE`.
 
@@ -407,8 +398,7 @@ final command content and byte digest. The local Worker gateway then performs
   `last_reviewed_report` to the exact `based_on_report` it reviewed. After
   inspection, the local gateway may move the unchanged staged blob to
   `worker/staged-publications/history/<outcome>/` as a non-canonical lifecycle
-  record; this prevents historical requests from starving the bounded inbox
-  while preserving their Git audit history. A cloud caller must never write
+  record; this keeps the active inbox bounded while preserving the Git audit trail. A cloud caller must never write
   canonical project state or command files directly.
 
 Operational command sizing/model/evidence policy is in `policies/supervisor.md`.
@@ -506,10 +496,7 @@ fact. Active recovery-only fields such as `recovery_reason` and
 `last_execution_error` are removed from the resolved state; a bounded
 `recovery_note` may retain the resolution identity.
 
-The historical network-guard path predates the pending-report metadata
-sidecar and therefore may have only the journal plus
-`pending-report-<id>.md`. Recovery Resolution binds that legacy artifact at
-operator time by requiring an explicitly reviewed SHA-256. It must fail closed
+A recovery record may consist of the journal plus `pending-report-<id>.md` without a metadata sidecar. Recovery Resolution binds that pending report at operator time by requiring an explicitly reviewed SHA-256. It must fail closed
 on a changed digest, changed state, changed journal identity, a different
 canonical report, or a newer canonical state. Repeating the exact resolution
 after `REPORT_READY` returns `ALREADY_RESOLVED` without another generation or
@@ -574,7 +561,7 @@ evidence_summary: Owner has started the requested action.
 - `relates_to` normally identifies the immediately preceding event;
 - current progress comes from the newest event in the same thread;
 - corrections are new events, never rewrites;
-- old records without thread-link fields remain valid legacy roots and must not be rewritten solely for migration;
+- records without thread-link fields remain valid immutable root events; current progress is represented by appended linked events;
 - conflicting/ambiguous ordering means remain conservative and do not resume.
 
 Allowed owner-status meaning:
@@ -636,7 +623,7 @@ Direct resume still uses normal command publication/CAS and moves `HUMAN_REQUIRE
 
 ### OWNER_REPORTED_DONE + FAILED
 
-Remain `HUMAN_REQUIRED` unless a concrete safe autonomous step directly addresses the verified failure. If a materially new owner action is required, open a new owner-action thread rather than repurposing the old blocker thread.
+Remain `HUMAN_REQUIRED` unless a concrete safe autonomous step directly addresses the verified failure. If a materially new owner action is required, open a new owner-action thread rather than repurposing the existing blocker thread.
 
 ### Owner-action safety
 

@@ -6,7 +6,7 @@ This file is the durable bootstrap/index for the external Scheduled Portfolio Su
 
 ## Authority by domain
 
-`PROTOCOL.md` and `protocol/v2/` define canonical workflow transitions. Explicit Owner controls govern project selection, pause and execution permission. Current source/runtime evidence determines current facts; Mission, Goals and Owner records determine intent in their own domains. Historical reports and migration documents are point-in-time evidence only.
+`PROTOCOL.md` and `protocol/v2/` define canonical workflow transitions. Explicit Owner controls govern project selection, pause and execution permission. Canonical State and current source/runtime evidence determine current facts; Mission, Goals and the newest applicable Owner records determine intent in their own domains.
 
 The Supervisor decides what should happen next. The Worker owns local admission and real execution. Codex executes one claimed command in the Worker's registered environment. Do not blur those responsibilities.
 
@@ -27,7 +27,7 @@ For every pass:
 3. Read the configured fixed Worker heartbeat and compute only `worker_available=true|false` under `policies/worker-availability.md` using current time.
 4. Read `supervisor/portfolio.json`.
 5. Read the current `projects/<project-id>/state.json` for every `owner_selected=true` project and derive compact attention facts.
-6. For any project whose canonical state is `HUMAN_REQUIRED`, perform the bounded owner-action freshness check required by `policies/portfolio-attention.md`: identify the current linked blocker thread and read only the newest linked owner-action event/status needed to distinguish a genuine current Owner dependency from `OWNER_REPORTED_DONE/PENDING`, `OWNER_REPORTED_DONE/VERIFIED`, or a superseded historical blocker. This is compact classification, not permission to deep-read every project's Goal/Report/source/CI/feedback evidence.
+6. For any project whose canonical state is `HUMAN_REQUIRED`, perform the bounded owner-action freshness check required by `policies/portfolio-attention.md`: identify the current linked blocker thread and read only the newest linked owner-action event/status needed to distinguish a genuine current Owner dependency from `OWNER_REPORTED_DONE/PENDING`, `OWNER_REPORTED_DONE/VERIFIED`, or a prerequisite that current Owner evidence has superseded. This is compact classification, not permission to deep-read every project's Goal/Report/source/CI/feedback evidence.
 7. Build the ordinary eligible ring in the existing `priority_rank` order and choose exactly one focus using the current UTC hour bucket, unless a narrow preemption condition in `policies/portfolio-attention.md` applies.
 8. For the focus only, read the current Goal, relevant canonical Report, current source/CI/release evidence, feedback/actions and project context needed for one bounded intent.
 9. Apply any explicit Automation-level emergency Owner override. The default is none; never invent one.
@@ -38,7 +38,7 @@ Do not use conversational memory or a derived snapshot as canonical authority. W
 
 Follow `policies/portfolio-attention.md`.
 
-The legacy-named `priority_rank` field is only the stable ring order for ordinary scheduling. It is not a project importance score and does not give a project extra ordinary focus turns. An unfinished Goal, a fresh ordinary SUCCESS Report, or repeated availability of another slice does not override the round-robin slot.
+`priority_rank` defines only the stable ring order for ordinary scheduling. It is not a project importance score and does not give a project extra ordinary focus turns. An unfinished Goal, a fresh ordinary SUCCESS Report, or repeated availability of another slice does not override the round-robin slot.
 
 A non-focus project may legitimately contain an unreviewed report, unfinished Goal, or resolved-owner `HUMAN_REQUIRED` resume/verification boundary until a later rotation slot. It must still receive a concise disposition based on compact current facts so intentional deferral is distinguishable from omission.
 
@@ -64,7 +64,7 @@ When the Worker later becomes available, plan from fresh current evidence and pe
 
 ## Goal and evidence reconciliation
 
-For the focus project, use `policies/current-goals.md` to determine the current product outcome and lifecycle. Use `policies/source-reconciliation.md` before publishing work, changing Goal lifecycle or escalating to the Owner. A historical Report proves only its run; it does not automatically prove the current source, release, device or production baseline.
+For the focus project, use `policies/current-goals.md` to determine the current product outcome and lifecycle. Use `policies/source-reconciliation.md` before publishing work, changing Goal lifecycle or escalating to the Owner. A Report proves the run and evidence it binds; current source, release, device and production facts must be established from their current authorities.
 
 For a focus project still canonical `HUMAN_REQUIRED`, first apply the latest owner-action reconciliation rules from `policies/source-reconciliation.md` and `policies/owner-escalation.md`. If the Owner action is reported done or verified, perform only the smallest legal verification/resume work and never ask the Owner to repeat the resolved action merely to clear the canonical container.
 

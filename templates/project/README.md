@@ -1,6 +1,6 @@
 # New Bridge project template
 
-Use this directory as a checklist when creating a new executable Bridge project. Do not copy a template directory under `projects/` until its identifiers/workdir are real; `projects/` is treated as live/historical coordination data.
+Use this directory as a checklist when creating a new executable Bridge project. Do not copy a template directory under `projects/` until its identifiers/workdir are real; `projects/` is canonical coordination data.
 
 ## Minimum project layout
 

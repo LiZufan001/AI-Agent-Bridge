@@ -110,7 +110,7 @@ Distinguish source inspection, unit tests, build/lint, host/emulator integration
 
 After `SUCCESS`, follow `policies/success-review.md`: verify exact identities and the strongest already-produced evidence first. Repeat expensive work only to close a concrete evidence gap or independently test a materially risky boundary.
 
-Before planning publication, lifecycle change or Owner escalation, follow `policies/source-reconciliation.md`; historical Report facts do not automatically describe the current source/runtime/production baseline.
+Before planning publication, lifecycle change or Owner escalation, follow `policies/source-reconciliation.md`; establish the current source/runtime/production baseline from the current authorities required by that policy.
 
 ## Executor profile
 

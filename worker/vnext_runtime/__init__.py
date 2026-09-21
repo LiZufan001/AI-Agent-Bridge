@@ -3,11 +3,10 @@
 This package is separate from ``worker/runtime``. That directory is reserved
 for ignored per-run evidence and is a protected path in the self-maintenance
 boundary. Runtime objects exported here do not themselves publish canonical
-Protocol-v2 state unless their documented adapter boundary explicitly does so.
+Protocol-v2 State unless their documented adapter boundary explicitly does so.
 
-Historical Candidate-B/Phase-8.5 reconciliation helpers remain internal to
-``adoption.py`` only for compatibility with historical tests/evidence; they are
-not part of the current package-level execution API.
+The package-level exports below define the supported runtime API. Additional
+module-local helpers remain internal to their owning modules.
 """
 
 from .capabilities import (

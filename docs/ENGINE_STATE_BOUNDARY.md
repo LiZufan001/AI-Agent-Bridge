@@ -2,9 +2,9 @@
 
 ## Resolution
 
-`worker/state_roots.py` is the only new location abstraction. Priority: CLI `--state-root`, then `AI_AGENT_BRIDGE_STATE_ROOT`. Read-only fallback is a marked sibling, then the bundled synthetic fixture. Writes require an explicit root, supported marker, complete layout, independent Git directory, no root symlink/junction, and disjoint Engine/State trees. Linked worktrees are not State roots. There is no fallback to Engine `projects/`.
+`worker/state_roots.py` is the location abstraction for Engine/State separation. Priority: CLI `--state-root`, then `AI_AGENT_BRIDGE_STATE_ROOT`. Read-only fallback is a marked sibling, then the bundled synthetic fixture. Writes require an explicit root, supported marker, complete layout, independent Git directory, no root symlink/junction, and disjoint Engine/State trees. Linked worktrees are not State roots. There is no fallback to Engine `projects/`.
 
-`bridge_root` in pre-existing APIs means State. `engine_root()` means code/assets/schema location. `git_store` fetch, pull, clean checks, CAS, commit, push, tracked staged-request freshness and recovery all operate on the same State Git repository. Engine code-change detection uses Engine Git. A State update cannot hot-load Engine code.
+`bridge_root` in runtime APIs means State. `engine_root()` means code/assets/schema location. `git_store` fetch, pull, clean checks, CAS, commit, push, tracked staged-request freshness and recovery all operate on the same State Git repository. Engine code-change detection uses Engine Git. A State update cannot hot-load Engine code.
 
 ## Storage and restart
 
@@ -25,13 +25,13 @@ Staged publication must stay with State: tracked-Git freshness checks must see t
 
 ## Control and self-maintenance
 
-The original Owner control file remains the single authority. Private bootstrap declares its location and local ignored deployment binding pins it. Missing/invalid/read-failed control blocks new admission. Pause is not an active-run kill. Console stop uses the existing exact-run path.
+The Owner control file is the single execution-permission authority. Private bootstrap declares its location and local ignored deployment binding pins it. Missing/invalid/read-failed control blocks new admission. Pause is not an active-run kill. Console stop uses the existing exact-run path.
 
-Self-maintenance commands and reports remain State data. Candidate Engine branches cannot approve State migrations or choose their own trusted validator. Ordinary execution remains full access, but a self-maintenance run is admitted only after independent-clone preflight, ignores ambient user config/rules, pins the elevated Windows sandbox backend, and selects built-in `:workspace` with approval policy `never`. The Candidate and normal system TEMP are writable, protected workspace paths such as `.git` remain read-only, and direct production reads/network access are not part of the maintenance-Agent contract. The outer Worker/Launcher owns production reads, GitHub interaction, commit/push, restart and adoption. Split unattended adoption remains refused. Manual controlled adoption is a separate outer-Launcher authority: it is available only when ignored Private State deployment binding pins the running Engine root, GitHub repository, `main` branch and controlled-only mode **and** the outer Launcher is started with explicit controlled-adoption opt-in. Adoption receipts and handoff evidence remain under State runtime, and replacement Workers are rebound to that State root. Independent review and an accepted candidate identity are still required; candidate code cannot create its own deployment authority. No additional daemon, queue, HTTP State service or state machine is introduced.
+Self-maintenance commands and reports are State data. A maintenance Candidate runs only after independent-clone preflight, ignores ambient user config/rules, uses the elevated Windows sandbox backend, selects built-in `:workspace`, and fixes approval policy to `never`. Candidate and normal system TEMP are writable; protected workspace paths such as `.git` remain read-only. The outer Worker/Launcher owns production reads, GitHub interaction, commit/push, restart and adoption. Controlled adoption is available only when the Private State deployment binding pins the running Engine root, GitHub repository, `main` branch and controlled-only mode, and the outer Launcher is explicitly armed. Adoption receipts and handoff evidence remain under State runtime, replacement Workers are rebound to that State root, and validator identity is selected outside Candidate authority. Unattended adoption is disabled.
 
 ## Validation
 
-Engine CI uses only temporary/synthetic State. State validation imports the independently accepted Engine implementation by a full commit SHA; State contains no implementation copy. Schema/interface version is 1 over unchanged Protocol v2. No canonical State schema migration is performed in this package. Future schema changes require a separately reviewed compatibility plan and exact pre-change snapshot.
+Engine CI uses only temporary/synthetic State. State validation imports the independently accepted Engine implementation by a full commit SHA; State contains no implementation copy. Schema/interface version is 1 over Protocol v2. Any schema change requires a separately reviewed compatibility plan and an exact pre-change snapshot.
 
 Default test fixtures contain invented project identities and local Git remotes. Credentials and private network endpoints are never needed for the default regression suite. Windows-specific containment/Task Scheduler integration still requires Windows acceptance; Linux skips are not Windows evidence.
 ## Reviewed private audit archives
@@ -46,11 +46,11 @@ exception still fails validation. Keep the review policy in private operator/Sta
 storage, outside Public Engine and Candidate authority. Do not delete audit
 archives or rewrite their bytes to obtain a passing check.
 
-## Terminal historical State validation
+## Terminal archival State validation
 
-The split does not rewrite append-only Owner evidence merely to satisfy newer operational projection rules. `tools/validate_state.py` therefore distinguishes current execution authority from archival evidence without adding a Protocol state. A project may use archival validation only when all of these are true at the same State snapshot: its canonical status is a Protocol terminal state (`DONE` or `FAILED`), `active_run` is null, the project is explicitly disabled in every configured host registry entry, and it is not Owner-selected in the portfolio. Missing registry evidence does **not** count as disabled.
+`tools/validate_state.py` distinguishes current execution authority from archival evidence without adding a Protocol state. A project may use archival validation only when all of these are true at the same State snapshot: its canonical status is a Protocol terminal state (`DONE` or `FAILED`), `active_run` is null, the project is explicitly disabled in every configured host registry entry, and it is not Owner-selected in the portfolio. Missing registry evidence does **not** count as disabled.
 
-Operational projects keep the existing `project_view` Owner-thread rules unchanged, including `OWNER_BLOCKER_MISMATCH`. Archival projects still validate Owner event file identity, roots, links and order, cannot retain an active goal, and cannot have a staged publication request. The archival tier relaxes only the assumption that historical corrections must preserve one current resume blocker key after the project has no execution entry. If a terminal project is re-enabled or re-selected, it immediately returns to the operational tier and the full blocker invariant applies again.
+Operational projects keep the existing `project_view` Owner-thread rules unchanged, including `OWNER_BLOCKER_MISMATCH`. Archival projects still validate Owner event file identity, roots, links and order, cannot retain an active goal, and cannot have a staged publication request. The archival tier does not require archival blocker-key corrections to remain a current resume authority after the project has no execution entry. If a terminal project is re-enabled or re-selected, it immediately returns to the operational tier and the full blocker invariant applies again.
 
 
 

@@ -60,7 +60,7 @@ Before publishing the first executable command for a new project:
 4. verify that the workdir satisfies host allowed roots and any stricter local allowlist;
 5. only then publish executable work.
 
-If an already-published initial command is still canonical and unclaimed because an older Worker predates remote-registry support, do not publish a duplicate command. Synchronize/adopt the upgraded Worker and allow the existing command to be claimed normally.
+If an already-published initial command is canonical and unclaimed, do not publish a duplicate command. Confirm that the production Worker satisfies the current registry contract, then allow the existing command to be claimed through the normal path.
 
 ## Owner feedback inbox
 
@@ -92,7 +92,7 @@ A local `allowed_workdir_roots` setting is an independent narrowing rule and mus
 
 The hardened Worker detects tracked Worker implementation changes after synchronization and exits with the dedicated restart code before claiming new work. The Windows launcher treats that as a controlled restart and remains a persistent watchdog with bounded exponential backoff.
 
-This mechanism only works after the hardened launcher/Worker generation has been adopted once. Migration from an older already-running Worker may therefore require one explicit adoption restart after the new tracked files have synchronized.
+Production uses the hardened Launcher/Worker boundary. Tracked Worker implementation changes become active only through the supported controlled restart/adoption path before the replacement Worker claims new work.
 
 See `worker/README.md` and `worker/REMOTE_PROJECTS.md` for runtime details.
 

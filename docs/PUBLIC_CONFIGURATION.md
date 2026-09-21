@@ -28,23 +28,13 @@ this minimizes disclosure, not anonymity against arbitrary outside information.
 The advertised console `root_id` is a random rendezvous identifier, persisted in
 a user-local temporary directory. A path digest is used only as a local lookup
 filename; it is never the identifier returned by the HTTP API. Copying State does
-not export this local registry. Existing consoles advertising path-derived IDs
-must be stopped using the old accepted launcher before starting this version.
+not export this local registry. Each running console instance must use the current random rendezvous identity contract.
 A registry entry is not an authorization token. Host/Origin checks protect browser
 requests, not mutually hostile programs sharing one OS account. Console health,
 logs and offline rendered views remain private operational evidence.
 
-## Compatibility and historical material
+## Stable instance identifiers and operator boundaries
 
-Historical operator/lab scripts and incident narratives are not in the public
-candidate. The current operator safety gate still checks the retained maintenance
-entry point. Historical document-specific automatic merge permissions have been
-removed; ordinary source and protected-protocol checks remain fail-closed.
+Persisted helper protocol names, task names and profile prefixes are operational identifiers. Change them only through an exact-identity operator plan that preserves installed helper, policy and State bindings.
 
-Existing version strings, helper protocol names, task names and profile prefixes
-are retained where changing them could invalidate installed helpers, policies or
-persisted evidence. They are compatibility identifiers, not proof of a particular
-owner's timeline. No source-only cleanup authorizes renaming installed tasks or
-reinterpreting historical State. Such a migration needs separate exact-identity
-acceptance. All operational evidence and private migration maps stay outside the
-public distribution. No deployment or rollback has been performed by this change.
+Operational evidence, concrete deployment mappings and credentials belong to the private instance. Public source changes do not by themselves authorize host-service, task, credential or State mutations.
