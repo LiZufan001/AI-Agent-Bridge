@@ -36,7 +36,7 @@ NON-FOCUS PROJECTS:
 - Non-focus eligible work remains `deferred-this-pass`.
 - Do not imply semantic review for a project that was not the deep focus.
 
-WORKER AVAILABILITY
+WORKER AVAILABILITY:
 Compute only `worker_available=true|false` using the exact bootstrap heartbeat contract, authoritative current time and Engine `policies/worker-availability.md`.
 
 When `worker_available=false`, keep the pass read-only. You may complete repository-grounded semantic review for the single focus project and report a non-canonical advisory next intent. Do not mutate product source or Goal lifecycle, allocate command ids, generate final executable bytes, create staged requests, mutate canonical State, or reserve execution.
