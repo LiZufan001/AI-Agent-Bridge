@@ -30,7 +30,7 @@ Build the ordinary eligible set from compact current facts:
   - current `AWAITING_OWNER` or `OWNER_IN_PROGRESS` remains outside ordinary rotation;
   - `OWNER_REPORTED_DONE + PENDING` is no longer blocked on the Owner and is ordinary eligible for bounded verification/reconciliation;
   - `OWNER_REPORTED_DONE + VERIFIED` is no longer blocked on the Owner and is ordinary eligible for Protocol-legal resume/reconciliation;
-  - newer durable Owner evidence that makes the historical prerequisite irrelevant or superseded is likewise eligible for bounded reconciliation;
+  - current durable Owner evidence that resolves or supersedes the prerequisite is likewise eligible for bounded reconciliation;
 - `DONE` is terminal and is not an ordinary focus candidate;
 - `RECOVERY_REQUIRED` / `FAILED` and uncertain side-effect states are handled by the preemption rules below rather than ordinary rotation.
 
@@ -44,7 +44,7 @@ rotation_index  = rotation_bucket mod N
 focus           = ordinary_eligible[rotation_index]
 ```
 
-This cursor is derived from current time and therefore creates no new persistent control state, cursor file, Git commit, lease, queue or acknowledgement protocol. With a stable eligible set, each project receives exactly one ordinary focus during each `N`-pass rotation cycle. If a Scheduled pass is missed, the next pass uses the current bucket rather than replaying old attention.
+This cursor is derived from current time and therefore creates no new persistent control state, cursor file, Git commit, lease, queue or acknowledgement protocol. With a stable eligible set, each project receives exactly one ordinary focus during each `N`-pass rotation cycle. If a Scheduled pass is missed, the next pass uses the current bucket; missed slots are not reconstructed.
 
 An unfinished ACTIVE Goal, a newly completed ordinary Report, repeated availability of another bounded slice, or project identity does not let one project consume extra ordinary focus slots outside this rotation.
 
@@ -58,7 +58,7 @@ Round-robin may be preempted only by a current condition whose delay would make 
 - an active safety/control-plane integrity problem that can make further execution unsafe;
 - explicit **new** Owner direction/control evidence that changes what is permitted or resolves/creates an Owner-only blocker.
 
-Ordinary correctness work, normal security hardening inside an ACTIVE Goal, former priority semantics, project name, conversational habit, an unfinished Goal, a fresh ordinary SUCCESS Report, or already-recorded owner-action completion awaiting routine verification/resume are **not** preemption reasons.
+Ordinary correctness work, normal security hardening inside an ACTIVE Goal, project name, conversational habit, an unfinished Goal, a fresh ordinary SUCCESS Report, or owner-action completion awaiting routine verification/resume are **not** preemption reasons.
 
 If multiple current preemption candidates exist, choose the one with the strongest immediate safety/Owner consequence; use `priority_rank` only as a deterministic tie-breaker among otherwise equivalent preemption candidates. After the preempting condition is resolved, return to the time-derived ordinary rotation. Do not create compensation passes or a second queue.
 
@@ -123,6 +123,6 @@ Do not use a non-focus disposition to imply semantic review that did not occur. 
 
 The human-readable result must make the one deep focus obvious, state whether focus came from ordinary rotation or narrow preemption, and distinguish intentional deferral from accidental omission. Give detail for the focus project; keep non-focus dispositions compact and grounded only in the facts actually read.
 
-For ordinary rotation, report the eligible ring in `priority_rank` order and the selected `rotation_index`. Do not describe `priority_rank` as a project priority; despite the legacy field name, its ordinary scheduling meaning is only stable ring order.
+For ordinary rotation, report the eligible ring in `priority_rank` order and the selected `rotation_index`. Describe `priority_rank` only as the stable ring order used for ordinary scheduling.
 
 A project-local blocker, race or no-op does not justify silently omitting the other portfolio entries, but it also does not authorize switching to a second deep project in the same pass. The next Scheduled pass is the normal boundary for another rotation slot.
