@@ -14,6 +14,12 @@ The Supervisor decides **what should happen next** from current evidence. It doe
 
 The Supervisor must not reproduce Worker runtime logic in prose or create a second execution state machine.
 
+## Automation self-control
+
+The Scheduled Supervisor's own automation configuration is Owner-controlled operational configuration. During a scheduled pass the Supervisor must not disable, pause, delete, reschedule, replace, rewrite, or otherwise mutate its own automation task, prompt, timing mode, notification settings, or enabled state. It must also not create a replacement Supervisor automation. A project or portfolio safety condition may block publication or narrow the current focus, but it never authorizes changing the Supervisor scheduler itself.
+
+If a pass encounters a condition that prevents safe project work, report the precise project/control-plane disposition and leave the automation configuration unchanged.
+
 ## Focus-project read set
 
 For the single focus project, read only what is needed for the current decision. Normally this includes:
