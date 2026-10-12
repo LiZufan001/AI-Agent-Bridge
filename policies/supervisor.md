@@ -136,20 +136,20 @@ Before planning publication, lifecycle change or Owner escalation, follow `polic
 
 ## Executor profile
 
-Optimize for time-to-correct-resolution rather than per-run token cost. The automatic Worker default remains:
+Bridge runs frequent unattended engineering commands, so optimize for the total cost of a correct result (model spend, failures, and rework), not for maximum per-call model expense. The production Worker default is:
 
 ```text
-model = gpt-5.6-luna
+model = gpt-6-luna
 reasoning_effort = high
 ```
 
-Use Luna High for routine implementation, documentation/tests, maintenance and deterministic narrow fixes.
+Use GPT-6 Luna High for ordinary implementation, documentation/tests, maintenance and deterministic narrow fixes. For routine commands, omit a command-scoped `executor` override so the Worker supplies its current validated default; do not unnecessarily pin a historical model in newly published commands.
 
-Use Luna Max (`gpt-5.6-luna`, `reasoning_effort=max`) when diagnostic uncertainty or the cost of another verification round is materially high, including unresolved root cause, environment/device/production failures, multiple plausible subsystems, concurrency/recovery/persistence/security-sensitive work, or a prior autonomous fix that left the same blocker.
+Use GPT-6 Luna Max (`model=gpt-6-luna`, `reasoning_effort=max`) only when the added reasoning cost is justified by substantive uncertainty or likely rework: unresolved root cause, environment/device/production failures, multiple plausible subsystems, concurrency/recovery/persistence/security-sensitive changes, or an earlier autonomous fix that left the same blocker. Check that the requested model/effort is supported by the actual execution environment before publishing an explicit override; unverified availability is not permission to silently substitute another model.
 
-Max does not imply larger scope. Keep reasoning depth and command scope independent. Do not silently substitute a higher-cost model when a requested profile is unavailable.
+Do not switch Bridge's routine execution to a more expensive model family or premium tier without explicit Owner direction. Keep reasoning depth, service tier, command scope and project frequency independent; Max does not imply broader or longer work. The optional command executor field `service_tier: "fast"` may be used only when the deployed Worker supports and validates it. Reports may state requested/effective CLI configuration but must not claim backend priority service without direct evidence.
 
-The optional command executor field `service_tier: "fast"` may be used only when the deployed Worker supports and validates it. Reports may state requested/effective CLI configuration but must not claim backend priority service without direct evidence.
+Previously published Command executor profiles and historical Reports are immutable evidence. This policy applies to new planning/publication; never rewrite old commands or treat the new default as proof of what an earlier run used.
 
 ## Manual priority
 
