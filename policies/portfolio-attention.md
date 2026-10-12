@@ -126,8 +126,8 @@ Do not use a non-focus disposition to imply semantic review that did not occur. 
 
 ## Output discipline
 
-The human-readable result must make the one deep focus obvious, state whether focus came from ordinary rotation or narrow preemption, and distinguish intentional deferral from accidental omission. Give detail for the focus project; keep non-focus dispositions compact and grounded only in the facts actually read.
+Follow `templates/supervisor-hourly-report.zh-CN.md`. Give the focus project's actual progress and one concise Chinese disposition for every other Owner-selected project. The classifications listed above are internal vocabulary, not phrases to copy verbatim into the user update. Intentional deferral must remain distinguishable from omission and must not imply a semantic review that did not occur.
 
-For ordinary rotation, report the eligible ring in `priority_rank` order and the selected `rotation_index`. Describe `priority_rank` only as the stable ring order used for ordinary scheduling.
+Compute and validate the eligible ring in `priority_rank` order and the selected `rotation_index` internally as before. Routine reports need only name the focus; explain a narrow preemption when relevant. Show raw ring/index/control fields only when the Owner asks for diagnostics or a specific decision depends on explaining them. Keep original evidence unchanged; this output policy creates no new queue, ledger, writes or permissions.
 
 A project-local blocker, race or no-op does not justify silently omitting the other portfolio entries, but it also does not authorize switching to a second deep project in the same pass. The next Scheduled pass is the normal boundary for another rotation slot.

@@ -109,19 +109,14 @@ Follow `policies/alerts.md` for liveness/recovery alerts and `policies/owner-esc
 
 ## Output contract
 
-Every pass must report:
+Use `templates/supervisor-hourly-report.zh-CN.md` for the human-facing hourly update. Lead with actual progress, the concrete blocker and any genuine Owner action, in natural Chinese. Cover every Owner-selected project once, while making clear which single project was deeply reviewed and which were intentionally left for later.
 
-- heartbeat evidence, `worker_available`, Owner execution mode and publication permission;
-- the actual Owner-selected portfolio ring order/pause state;
-- whether focus came from ordinary rotation or narrow preemption;
-- for ordinary rotation, the eligible ring and selected `rotation_index`;
-- the chosen focus project and the bounded intent/review completed there;
-- one concise disposition for every Owner-selected project, including explicit `deferred-this-pass` when a non-focus eligible project was intentionally left for later;
-- Goal/feedback/action conclusion when relevant;
-- publication outcome or exact no-publication reason;
-- if offline, the concise non-canonical advisory intent;
-- any genuine remaining Owner/recovery/fresh-evidence dependency.
+Heartbeat/control validation, eligible-ring ordering, `rotation_index`, generation/CAS and publication identity remain required internal checks. They are not a mandatory raw-field dump in the user report. Explain a safety preemption briefly when it changes the focus. Keep original identifiers and detailed evidence in their existing authoritative locations; do not add a second ledger or extra writes just to format the update.
+
+Distinguish an advisory plan, `STAGED_INPUT_SUBMITTED`, canonical acceptance, active execution and verified completion. Translate these accurately rather than exposing status codes by default. Unknown evidence is not an empty result. Claims about changes since an earlier pass require a verified comparison; routine successful polling is not product progress.
+
+If the template cannot be read, use a compact Chinese fallback: conclusion, focus progress, one line per selected project, then next action/Owner dependency. A presentation failure does not add a publication gate or bypass an existing one.
 
 The Supervisor is a periodic planner. End the pass after one coherent focus boundary; never wait for Worker/Codex completion inside the Scheduled task and never start a second deep project simply because time remains.
 
-Use `NO_NOVEL_WORK_AVAILABLE` only when compact portfolio accounting plus the completed focus review supports that conclusion without unknown relevant evidence. Otherwise report the precise current disposition.
+Use `NO_NOVEL_WORK_AVAILABLE` only when compact portfolio accounting plus the completed focus review supports that conclusion without unknown relevant evidence. Otherwise report the precise current disposition in Chinese.

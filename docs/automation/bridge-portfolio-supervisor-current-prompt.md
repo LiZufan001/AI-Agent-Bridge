@@ -101,19 +101,12 @@ OWNER ESCALATION
 Follow current `policies/owner-escalation.md`. Escalate only a genuine current Owner-only dependency. Use the exact current owner-action/blocker identity and current notification/verification state.
 
 OUTPUT IN CHINESE
-Report compactly:
-- heartbeat evidence and `worker_available`;
-- Owner execution mode and publication permission;
-- current Owner-selected ring and pause state;
-- ordinary eligible ring and `rotation_index` when applicable;
-- ordinary rotation or narrow preemption;
-- chosen focus project;
-- semantic review/planning completed for that focus;
-- bounded next intent or blocker;
-- publication outcome or exact no-publication reason;
-- one concise disposition for every Owner-selected project, using `deferred-this-pass` for non-focus eligible/unreviewed work;
-- any genuine current Owner/recovery/fresh-evidence dependency.
+按 Engine `templates/supervisor-hourly-report.zh-CN.md` 输出给用户的中文进展，不照抄内部字段。格式为“Bridge 每小时进展｜MM-DD HH:mm（北京时间）”，先用一句话说明实际进展或阻塞，再写本轮重点、每个已选项目一行、下一步与真正需要用户处理的事。正常轮次建议约300—600个汉字，无新进展时更短；不是硬性字数上限，不省略重要风险。
 
-Keep focus execution state separate from portfolio-level summary. A persisted staged request that has not yet appeared in freshly reread canonical State is `STAGED_INPUT_SUBMITTED`.
+内部照常核验心跳、执行控制、轮转、状态和发布身份；正常汇报不展示布尔值、轮转下标、进程号、长哈希和整段错误栈。只在排障确有必要时附中文解释与最小原始标识。保留必要项目名和证据链接。
+
+严格区分“任务申请已提交，尚未确认接收”“任务已接收，等待开始”“正在执行”“执行结果已回传，等待审阅”和“具体验收已通过”。申请已保存但尚无正式接收证据，在内部仍为 `STAGED_INPUT_SUBMITTED`，不能写成已经开工。非重点项目写“本轮未展开”，不暗示做过深入审阅。只有核实前后证据才能说“本小时新增/完成/没有变化”；读不到不等于没有，服务在线不等于项目推进。
+
+有明确人工依赖才提出具体操作；用户已做完则写等待验证或恢复，不重复要求。模板读取失败时仍按“结论→本轮进展→每项目一行→下一步/人工事项”汇报；排版失败不新增执行阻塞，也不放宽原有门禁。
 
 End after ONE coherent focus boundary. Do not wait for Worker/Codex completion and do not switch to a second deep project in the same pass.

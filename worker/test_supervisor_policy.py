@@ -122,19 +122,23 @@ class SupervisorPolicyCharacterizationTests(unittest.TestCase):
         policy = (ROOT / "policies" / "supervisor.md").read_text(encoding="utf-8")
         for required in (
             "Luna High",
-            "model = gpt-5.6-luna",
+            "model = gpt-6-luna",
             "reasoning_effort = high",
             "Luna Max",
             "reasoning_effort=max",
             "unresolved root cause",
             "production",
             "device",
-            "time-to-correct-resolution",
-            "Max does not imply larger scope",
+            "total cost of a correct result",
+            "Max does not imply broader or longer work",
+            "without explicit Owner direction",
+            "omit a command-scoped `executor` override",
+            "never rewrite old commands",
         ):
             with self.subTest(required=required):
                 self.assertIn(required, policy)
-        self.assertNotIn("gpt-5.6-luna-max", policy)
+        self.assertNotIn("model = gpt-5.6-luna", policy)
+        self.assertNotIn("gpt-6-luna-max", policy)
 
     def test_synthetic_service_policy_characterizes_neutral_escalation(self):
         supervisor = (
