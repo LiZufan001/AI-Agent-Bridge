@@ -530,6 +530,15 @@ class SupervisorPublicationGateway:
                 # observe the exact state and retry only this non-canonical
                 # lifecycle move.
                 pass
+        # Diagnostics are observations, never executable transport input.
+        scan = getattr(self, "last_scan", {})
+        reason = None
+        if scan.get("status") in {"scan_permission_denied", "scan_io_error", "scan_incomplete"}:
+            reason = scan["status"]
+        elif scan.get("unsupported_json_count", 0):
+            reason = "unsupported_request_filename"
+        if reason is not None and len(results) < self.max_requests_per_poll:
+            results.append(GatewayResult("inbox-scan", None, None, "scan_diagnostic", reason))
         return tuple(results)
 
     def _retirement_for(
