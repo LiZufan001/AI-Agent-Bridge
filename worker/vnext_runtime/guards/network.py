@@ -273,6 +273,12 @@ def _safe_diagnostic_reason(value: object) -> str:
         "probe timeout is invalid",
         "probe returned HTTP error",
         "probe failed or timed out",
+        "probe transport timeout",
+        "probe DNS resolution failed",
+        "probe TLS handshake failed",
+        "probe connection failed",
+        "probe response or URL invalid",
+        "probe transport unavailable",
         "probe country is unknown or malformed",
         "guard disposed",
     }:
