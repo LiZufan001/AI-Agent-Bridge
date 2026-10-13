@@ -137,9 +137,10 @@ _RETIREABLE_OUTCOMES = frozenset(
         "stale",
         "active_project",
         "cas_race",
-        "error_safe",
     }
 )
+# A transient or ambiguous publication failure is not an invalid request.
+# Keep exact input in place for fresh State reconciliation; never rerun Codex.
 
 
 class StagedPublicationError(ValueError):
@@ -537,7 +538,7 @@ class SupervisorPublicationGateway:
             reason = scan["status"]
         elif scan.get("unsupported_json_count", 0):
             reason = "unsupported_request_filename"
-        if reason is not None and len(results) < self.max_requests_per_poll:
+        if reason is not None:
             results.append(GatewayResult("inbox-scan", None, None, "scan_diagnostic", reason))
         return tuple(results)
 
@@ -659,11 +660,29 @@ class SupervisorPublicationGateway:
             raise StagedPublicationError("project_not_found")
         return project_root
 
+    def _freshness_reason(self, request_path: Path) -> str | None:
+        """Production facade supplies the timestamp contract."""
+        return None
+
+    def _execution_allowed(self) -> bool:
+        """Core synthetic callers have no outer control; facade supplies it."""
+        return True
+
+    def _owner_resume_evidence(self, project_root: Path, latest_report: int) -> str | None:
+        """No Owner resume without the production evidence adapter."""
+        return None
+
     def _consume_one(
         self,
         request_path: Path,
         request: StagedPublicationRequest,
     ) -> GatewayResult:
+        freshness_reason = self._freshness_reason(request_path)
+        if freshness_reason == "request_expired":
+            return self._result(request, "stale", freshness_reason)
+        if freshness_reason is not None:
+            return self._result(request, "invalid", freshness_reason)
+
         try:
             project_root = self._project_root(request.project_id)
             state_path = project_root / "state.json"
@@ -682,6 +701,8 @@ class SupervisorPublicationGateway:
                 return self._result(request, "invalid", "project_mismatch")
             if self._already_applied(project_root, state, request):
                 return self._result(request, "already_applied", "already_applied")
+            if not self._execution_allowed():
+                return self._result(request, "stale", "owner_execution_blocked")
 
             status = state.get("status")
             if (
@@ -690,7 +711,7 @@ class SupervisorPublicationGateway:
                 or state.get("active_run") is not None
             ):
                 return self._result(request, "active_project", "active_project")
-            if status != "REPORT_READY":
+            if status not in {"REPORT_READY", "HUMAN_REQUIRED"}:
                 return self._result(request, "stale", "not_report_ready")
 
             generation = _bounded_int(state.get("generation"), "generation", minimum=0)
@@ -707,16 +728,21 @@ class SupervisorPublicationGateway:
             if request.command_id != latest_command + 1:
                 return self._result(request, "stale", "command_id_not_next")
 
-            command_path = (
-                project_root
-                / "commands"
-                / f"command-{request.command_id:03d}.md"
-            )
-            report_path = (
-                project_root
-                / "reports"
-                / f"report-{request.command_id:03d}.md"
-            )
+            resume_after_owner = status == "HUMAN_REQUIRED"
+            resume_evidence: str | None = None
+            if resume_after_owner:
+                if (
+                    state.get("human_required") is not True
+                    or request.source != "scheduled_chatgpt"
+                    or request.kind != "EXECUTE"
+                ):
+                    return self._result(request, "stale", "not_report_ready")
+                resume_evidence = self._owner_resume_evidence(project_root, latest_report)
+                if resume_evidence is None:
+                    return self._result(request, "stale", "not_report_ready")
+
+            command_path = project_root / "commands" / f"command-{request.command_id:03d}.md"
+            report_path = project_root / "reports" / f"report-{request.command_id:03d}.md"
             if command_path.is_symlink() or report_path.is_symlink():
                 return self._result(request, "invalid", "project_path_invalid")
             if command_path.exists() or report_path.exists():
@@ -733,6 +759,8 @@ class SupervisorPublicationGateway:
             projected["latest_command"] = request.command_id
             projected["last_reviewed_report"] = request.based_on_report
             projected["active_run"] = None
+            if resume_after_owner:
+                projected["human_required"] = False
             try:
                 validate_exact_command_for_publication(
                     request.command_bytes,
@@ -743,56 +771,87 @@ class SupervisorPublicationGateway:
             except (protocol_core.ProtocolViolation, phased_task.PhasedTaskError):
                 return self._result(request, "invalid", "preflight_failed")
 
+            freshness_reason = self._freshness_reason(request_path)
+            if freshness_reason == "request_expired":
+                return self._result(request, "stale", freshness_reason)
+            if freshness_reason is not None:
+                return self._result(request, "invalid", freshness_reason)
+
             initial_state_fingerprint = _state_fingerprint(state)
             initial_request_bytes = self._read_staged_blob(request_path)
             if initial_request_bytes != request.raw_bytes:
                 return self._result(request, "cas_race", "request_changed")
             already_applied_seen = False
 
-            def request_is_unchanged() -> bool:
+            def request_is_unchanged_and_fresh() -> bool:
+                if self._freshness_reason(request_path) is not None:
+                    return False
                 try:
                     return self._read_staged_blob(request_path) == initial_request_bytes
                 except StagedPublicationError:
                     return False
 
+            def resume_evidence_is_unchanged() -> bool:
+                if not resume_after_owner:
+                    return True
+                return (
+                    self._owner_resume_evidence(project_root, latest_report)
+                    == resume_evidence
+                )
+
             def state_is_eligible(current: dict[str, Any]) -> bool:
                 return (
                     _state_fingerprint(current) == initial_state_fingerprint
                     and current.get("project_id") == request.project_id
-                    and current.get("status") == "REPORT_READY"
+                    and current.get("status") == status
                     and current.get("active_run") is None
                     and current.get("generation") == generation
                     and current.get("latest_command") == latest_command
                     and current.get("latest_report") == latest_report
+                    and (
+                        not resume_after_owner
+                        or current.get("human_required") is True
+                    )
                 )
 
             def already_applied(current: dict[str, Any]) -> bool:
                 nonlocal already_applied_seen
-                if not request_is_unchanged():
-                    raise bridge_common.CASConflict("staged request changed")
-                already_applied_seen = self._already_applied(
-                    project_root, current, request
-                )
+                if not request_is_unchanged_and_fresh():
+                    raise bridge_common.CASConflict("staged request changed or expired")
+                already_applied_seen = self._already_applied(project_root, current, request)
                 return already_applied_seen
 
             def expected(current: dict[str, Any]) -> bool:
-                return request_is_unchanged() and state_is_eligible(current)
+                return (
+                    request_is_unchanged_and_fresh()
+                    and resume_evidence_is_unchanged()
+                    and state_is_eligible(current)
+                )
 
             def payload_builder(current: dict[str, Any]) -> dict[Path, str | bytes]:
-                if not request_is_unchanged() or not state_is_eligible(current):
-                    raise bridge_common.CASConflict("staged publication evidence changed")
-                # Read the state one more time immediately before constructing
-                # the CAS payload.  The complete request is revalidated here,
-                # not merely the fields observed during directory scanning.
+                if not self._execution_allowed():
+                    raise bridge_common.CASConflict("Owner execution control blocked publication")
+                if (
+                    not request_is_unchanged_and_fresh()
+                    or not resume_evidence_is_unchanged()
+                    or not state_is_eligible(current)
+                ):
+                    raise bridge_common.CASConflict("staged publication evidence changed or expired")
                 fresh = _read_state(state_path)
                 if not state_is_eligible(fresh):
                     raise bridge_common.CASConflict("canonical state changed before publish")
+                if not resume_evidence_is_unchanged():
+                    raise bridge_common.CASConflict("owner resume evidence changed before publish")
+                if self._freshness_reason(request_path) is not None:
+                    raise bridge_common.CASConflict("staged request expired before publish")
                 projected_fresh = dict(fresh)
                 projected_fresh["status"] = target_status
                 projected_fresh["generation"] = request.expected_generation
                 projected_fresh["latest_command"] = request.command_id
                 projected_fresh["last_reviewed_report"] = request.based_on_report
                 projected_fresh["active_run"] = None
+                if resume_after_owner:
+                    projected_fresh["human_required"] = False
                 try:
                     validate_exact_command_for_publication(
                         request.command_bytes,
@@ -819,6 +878,8 @@ class SupervisorPublicationGateway:
                 updated["latest_command"] = request.command_id
                 updated["last_reviewed_report"] = request.based_on_report
                 updated["active_run"] = None
+                if resume_after_owner:
+                    updated["human_required"] = False
                 updated["updated_at"] = _now_iso()
                 return {
                     command_path: request.command_bytes,
@@ -838,8 +899,13 @@ class SupervisorPublicationGateway:
                     ),
                 )
             except bridge_common.CASConflict:
+                freshness_reason = self._freshness_reason(request_path)
+                if freshness_reason == "request_expired":
+                    return self._result(request, "stale", freshness_reason)
+                if freshness_reason is not None:
+                    return self._result(request, "invalid", freshness_reason)
                 return self._result(request, "cas_race", "cas_race")
-            except (OSError, ValueError, json.JSONDecodeError, git_store.WorkerError):
+            except (OSError, ValueError, git_store.WorkerError):
                 return self._result(request, "error_safe", "error_safe")
             except Exception:
                 return self._result(request, "error_safe", "error_safe")
@@ -864,6 +930,10 @@ class SupervisorPublicationGateway:
                 or verified_state.get("last_reviewed_report") != request.based_on_report
                 or verified_state.get("status") != target_status
                 or verified_state.get("active_run") is not None
+                or (
+                    resume_after_owner
+                    and verified_state.get("human_required") is not False
+                )
             ):
                 return self._result(request, "error_safe", "error_safe")
             return self._result(
