@@ -47,10 +47,8 @@ _REQUEST_NAME_RE = re.compile(
 )
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 _SAFE_VALUE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/ -]{0,127}$")
-_SECRET_RE = re.compile(
-    r"(?i)(?:authorization\s*:|cookie\s*:|(?:token|secret|password|api[_-]?key)\s*[=:]|"
-    r"ghp_|github_pat_|sk-(?:proj-)?|-----begin)"
-)
+# Value-aware publication screening: field discussion is not a credential.
+from request_privacy import SECRET_VALUES as _SECRET_RE
 
 _REQUEST_REQUIRED_FIELDS = frozenset(
     {
