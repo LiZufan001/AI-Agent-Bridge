@@ -180,28 +180,48 @@ class NetworkGuard:
         probe_url = str(settings.get("probe_url", "")).strip()
         if not probe_url.lower().startswith("https://"):
             return _fail_closed_result(settings, "probe URL is not HTTPS")
+        import math
+        import socket
+        import ssl
         try:
             timeout = float(settings.get("timeout_seconds", 5))
-            if timeout <= 0:
+            if not math.isfinite(timeout) or timeout <= 0:
                 raise ValueError
         except (TypeError, ValueError):
             return _fail_closed_result(settings, "probe timeout is invalid")
 
-        request = Request(
-            probe_url,
-            headers={"User-Agent": "AI-Agent-Bridge-network-guard/1"},
-        )
         try:
+            request = Request(
+                probe_url,
+                headers={"User-Agent": "AI-Agent-Bridge-network-guard/1"},
+            )
             with self._opener(request, timeout=timeout) as response:
                 status_value = getattr(response, "status", None)
                 status = int(
                     status_value if status_value is not None else response.getcode()
                 )
                 body = response.read(16384).decode("utf-8", errors="replace")
-        except HTTPError:
-            return _fail_closed_result(settings, "probe returned HTTP error")
-        except (URLError, TimeoutError, OSError, ValueError):
-            return _fail_closed_result(settings, "probe failed or timed out")
+        except HTTPError as exc:
+            code = exc.code
+            reason = (f"probe returned HTTP {code}" if type(code) is int and 100 <= code <= 599
+                      else "probe returned HTTP error")
+            return _fail_closed_result(settings, reason)
+        except (URLError, TimeoutError, OSError, ValueError) as exc:
+            cause = exc.reason if isinstance(exc, URLError) else exc
+            if isinstance(cause, TimeoutError):
+                reason = "probe transport timeout"
+            elif isinstance(cause, socket.gaierror):
+                reason = "probe DNS resolution failed"
+            elif isinstance(cause, ssl.SSLError):
+                reason = "probe TLS handshake failed"
+            elif isinstance(cause, ConnectionError):
+                reason = "probe connection failed"
+            elif isinstance(cause, ValueError):
+                reason = "probe response or URL invalid"
+            else:
+                reason = "probe transport unavailable"
+            # Never copy URL, response body, headers or exception text.
+            return _fail_closed_result(settings, reason)
 
         if status < 200 or status >= 300:
             return _fail_closed_result(settings, f"probe returned HTTP {status}")
