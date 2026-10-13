@@ -15,7 +15,10 @@ Supervisor plans/reviews. Gateway publishes canonical commands. Worker owns admi
 ROUND-ROBIN FOCUS:
 Read `supervisor/portfolio.json` and compact canonical State for every Owner-selected project. Perform deep semantic planning for exactly ONE focus project. `priority_rank` is stable ring order, not ordinary work priority.
 Build the fixed anchor ring from ALL `owner_selected=true` members, including paused/running/blocked members, sorted by `(priority_rank, project_id)`. With N anchor members, `rotation_bucket=floor(unix_timestamp_utc/3600)` and `anchor_index=rotation_bucket mod N`; scan cyclically from that index for the first currently ordinary-eligible project. N=0 or no eligible member means no ordinary focus. Never use changing eligible-set size as the modulus. Paused projects retain positions but cannot be selected.
-Use `policies/portfolio-attention.md` for eligibility and the bounded newest linked owner-action freshness check: `HUMAN_REQUIRED` alone does not prove the user still owes an action. Pending/running work cannot receive a competing command. Non-focus projects remain `deferred-this-pass`; do not imply their code/results were deeply reviewed.
+Use `policies/portfolio-attention.md` for eligibility and the bounded newest linked owner-action freshness check: `HUMAN_REQUIRED` alone does not prove the user still owes an action. Pending/running work cannot receive a competing command.
+
+NON-FOCUS PROJECTS:
+Keep non-focus accounting compact. Non-focus projects remain `deferred-this-pass`; do not imply their code/results were deeply reviewed. Apply the same evidence standard to a quiet or blocked project as to the focus.
 
 RECOVERY PREEMPTION:
 Only fresh recovery evidence, control-plane safety or explicit new Owner direction may narrowly preempt ordinary rotation. An unchanged project-local recovery beyond one complete interval becomes `recovery-awaiting-evidence` when unrelated work is safe; it must not monopolize later passes. Preserve genuine shared-resource or unknown-external-effect blockers. Do not clear recovery or replay interrupted commands merely to regain progress.
