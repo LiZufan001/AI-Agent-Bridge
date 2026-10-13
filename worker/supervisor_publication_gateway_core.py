@@ -560,29 +560,56 @@ class SupervisorPublicationGateway:
         return request_path, outcome_directory / history_name, raw_bytes
 
     def _request_paths(self) -> tuple[tuple[Path, str], ...]:
-        directory = self.request_directory
-        if not directory.is_dir():
-            return ()
+        """Bounded observation with visible incompleteness and fair local paging.
+
+        The cursor is disposable and never execution authority. Unsupported
+        files are observed but never renamed, deleted or treated as commands.
+        A hard directory budget remains; exceeding it is not an empty inbox.
+        """
         paths: list[tuple[Path, str]] = []
+        self.last_scan = {
+            "status": "complete", "examined_entries": 0,
+            "candidate_count": 0, "unsupported_json_count": 0,
+            "ignored_entry_count": 0, "complete": True,
+        }
         try:
-            with os.scandir(directory) as entries:
-                examined = 0
+            with os.scandir(self.request_directory) as entries:
                 for entry in entries:
-                    if examined >= MAX_SCAN_ENTRIES:
+                    if self.last_scan["examined_entries"] >= MAX_SCAN_ENTRIES * 32:
+                        self.last_scan.update(status="scan_incomplete", complete=False)
                         break
-                    examined += 1
+                    self.last_scan["examined_entries"] += 1
                     name = entry.name
-                    if not name.startswith("request-") or not name.casefold().endswith(
-                        ".json"
-                    ):
+                    if not name.casefold().startswith("request-") or not name.casefold().endswith(".json"):
+                        self.last_scan["ignored_entry_count"] += 1
+                        if name.casefold().endswith(".json"):
+                            self.last_scan["unsupported_json_count"] += 1
                         continue
                     match = _REQUEST_NAME_RE.fullmatch(name)
-                    # Never echo an unvalidated filename into health/log output.
                     filename_id = match.group(1) if match else "invalid-filename"
                     paths.append((Path(entry.path), filename_id))
-        except OSError:
+        except FileNotFoundError:
+            self.last_scan.update(status="directory_missing", complete=True)
             return ()
-        return tuple(sorted(paths, key=lambda item: item[0].name.casefold()))
+        except PermissionError:
+            self.last_scan.update(status="scan_permission_denied", complete=False)
+            return ()
+        except OSError:
+            self.last_scan.update(status="scan_io_error", complete=False)
+            return ()
+        paths.sort(key=lambda item: (item[0].name.casefold(), item[0].name))
+        self.last_scan["candidate_count"] = len(paths)
+        after = getattr(self, "_scan_after", None)
+        if after is not None:
+            later = [item for item in paths if (item[0].name.casefold(), item[0].name) > after]
+            earlier = [item for item in paths if (item[0].name.casefold(), item[0].name) <= after]
+            paths = later + earlier
+        page = paths[:MAX_SCAN_ENTRIES]
+        if page:
+            last = page[-1][0].name
+            self._scan_after = (last.casefold(), last)
+        self.last_scan["candidate_page_truncated"] = len(paths) > len(page)
+        return tuple(page)
 
     def _read_staged_blob(self, path: Path) -> bytes:
         if not self._is_direct_child(path, self.request_directory):
