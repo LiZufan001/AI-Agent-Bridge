@@ -565,7 +565,6 @@ def main(*, runtime_root: Path | None = None) -> int:
                         last_gateway_reason=(
                             last_gateway.reason if last_gateway else "none"
                         ),
-                        gateway_scan=dict(getattr(supervisor_gateway, "last_scan", {})),
                     )
                     for result in gateway_results:
                         print(

@@ -14,11 +14,15 @@ The Supervisor decides what should happen next. The Worker owns local admission 
 
 Every Scheduled pass has one deep focus project and one coherent bounded planning intent.
 
-First perform compact portfolio accounting, then choose the single focus project under `policies/portfolio-attention.md`. Ordinary focus selection is stateless round-robin over the currently eligible Owner-selected projects. Narrow safety/recovery/new-Owner-evidence conditions may preempt that rotation. Only the chosen focus project may receive Goal/Report/source/feedback/CI body reads during the pass.
+First perform compact portfolio accounting, then choose the single focus project under `policies/portfolio-attention.md`. Ordinary focus selection uses the fixed Owner-selected anchor ring, then skips members that are not currently eligible. Narrow safety/recovery/new-Owner-evidence conditions may preempt that rotation. Only the chosen focus project may receive Goal/Report/source/feedback/CI body reads during the pass.
 
 The Supervisor should adapt its pacing to the actual task and tool/runtime window. Repository policy intentionally does not encode guessed minute-by-minute checkpoints, arbitrary body-file/byte quotas, or a persistent attention queue.
 
 ## Mandatory compact read
+
+Load the entrypoint and only the policies needed by the current decision; a wildcard in the protocol index is a reference, not an instruction to dump the entire tree into context. Within a pass, reuse immutable source already read rather than repeatedly loading it. Final publication still requires fresh mutable control/state evidence.
+
+When the actual accepted execution environment exposes `worker/supervisor_tools.py`, its read-only `context` view can gather bounded current references and focus excerpts from one immutable State commit. It is disposable, explicitly not authorization, and does not replace required Owner-control/heartbeat/source verification. If absent or unavailable, read the original files; helper/cache absence is not a new blocker. `prepare` generates exact staged bytes but never publishes canonical State or starts a model. Confirm capability and producer authority before using it; never infer deployment from remote documentation.
 
 For every pass:
 
@@ -28,7 +32,7 @@ For every pass:
 4. Read `supervisor/portfolio.json`.
 5. Read the current `projects/<project-id>/state.json` for every `owner_selected=true` project and derive compact attention facts.
 6. For any project whose canonical state is `HUMAN_REQUIRED`, perform the bounded owner-action freshness check required by `policies/portfolio-attention.md`: identify the current linked blocker thread and read only the newest linked owner-action event/status needed to distinguish a genuine current Owner dependency from `OWNER_REPORTED_DONE/PENDING`, `OWNER_REPORTED_DONE/VERIFIED`, or a prerequisite that current Owner evidence has superseded. This is compact classification, not permission to deep-read every project's Goal/Report/source/CI/feedback evidence.
-7. Build the ordinary eligible ring in the existing `priority_rank` order and choose exactly one focus using the current UTC hour bucket, unless a narrow preemption condition in `policies/portfolio-attention.md` applies.
+7. Build the fixed Owner-selected anchor ring in `(priority_rank, project_id)` order, including paused/running/blocked positions. Derive the UTC-hour anchor from that ring size, then walk cyclically to the first currently eligible project; do not use the changing eligible-set length. Choose at most one focus, subject to narrow preemption in `policies/portfolio-attention.md`.
 8. For the focus only, read the current Goal, relevant canonical Report, current source/CI/release evidence, feedback/actions and project context needed for one bounded intent.
 9. Apply any explicit Automation-level emergency Owner override. The default is none; never invent one.
 
@@ -111,7 +115,7 @@ Follow `policies/alerts.md` for liveness/recovery alerts and `policies/owner-esc
 
 Use `templates/supervisor-hourly-report.zh-CN.md` for the human-facing hourly update. Lead with actual progress, the concrete blocker and any genuine Owner action, in natural Chinese. Cover every Owner-selected project once, while making clear which single project was deeply reviewed and which were intentionally left for later.
 
-Heartbeat/control validation, eligible-ring ordering, `rotation_index`, generation/CAS and publication identity remain required internal checks. They are not a mandatory raw-field dump in the user report. Explain a safety preemption briefly when it changes the focus. Keep original identifiers and detailed evidence in their existing authoritative locations; do not add a second ledger or extra writes just to format the update.
+Heartbeat/control validation, fixed-anchor ordering, `anchor_index`, current eligibility, generation/CAS and publication identity remain required internal checks. They are not a mandatory raw-field dump in the user report. Explain a safety preemption briefly when it changes the focus. Keep original identifiers and detailed evidence in their existing authoritative locations; do not add a second ledger or extra writes just to format the update.
 
 Distinguish an advisory plan, `STAGED_INPUT_SUBMITTED`, canonical acceptance, active execution and verified completion. Translate these accurately rather than exposing status codes by default. Unknown evidence is not an empty result. Claims about changes since an earlier pass require a verified comparison; routine successful polling is not product progress.
 

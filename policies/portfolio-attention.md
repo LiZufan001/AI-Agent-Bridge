@@ -36,19 +36,20 @@ Build the ordinary eligible set from compact current facts:
 
 A newly arrived explicit Owner direction/control event may still qualify for narrow preemption under the rules below. Already-recorded resolved owner evidence does not remain a permanent preemption: once compact reconciliation shows the Owner dependency is no longer outstanding, the project participates in ordinary rotation until selected for its bounded verification/resume work.
 
-Sort the ordinary eligible set by `priority_rank`. Let `N` be its size. The Scheduled task is hourly, so use the authoritative UTC hour bucket as the stateless rotation cursor:
+Build a **fixed Owner-selected anchor ring** from every `owner_selected=true` project, including paused, running and currently blocked members, sorted by `(priority_rank, project_id)`. Let `N` be this anchor ring's size, not the changing eligible set's size. The Scheduled task remains hourly:
 
 ```text
 rotation_bucket = floor(unix_timestamp_utc / 3600)
-rotation_index  = rotation_bucket mod N
-focus           = ordinary_eligible[rotation_index]
+anchor_index    = rotation_bucket mod N       # only when N > 0
+ordered         = owner_ring[anchor_index:] + owner_ring[:anchor_index]
+focus           = first member of ordered that is currently ordinary eligible
 ```
 
-This cursor is derived from current time and therefore creates no new persistent control state, cursor file, Git commit, lease, queue or acknowledgement protocol. With a stable eligible set, each project receives exactly one ordinary focus during each `N`-pass rotation cycle. If a Scheduled pass is missed, the next pass uses the current bucket; missed slots are not reconstructed.
+No selected projects or no eligible members means no ordinary focus. Paused members retain their anchor positions but can never be chosen for ordinary work or project-local preemption. Recompute eligibility from fresh facts every pass; only an Owner selection/rank change changes anchor membership/order. Do not take the changing eligible-set size as the modulus.
 
-An unfinished ACTIVE Goal, a newly completed ordinary Report, repeated availability of another bounded slice, or project identity does not let one project consume extra ordinary focus slots outside this rotation.
+This derived cursor creates no persistent control state, cursor file, Git commit, lease, queue or acknowledgement protocol. With a fixed Owner-selected set, every continuously eligible project has its own anchor opportunity within `N` ordinary hourly slots, irrespective of other projects' eligibility changes. Safety preemption and missed Scheduled passes remain explicit exceptions; missed slots are not reconstructed.
 
-If the eligible set changes because a project becomes paused, terminal, running/pending, genuinely blocked, or newly eligible after owner-action reconciliation, recompute the ring from fresh compact facts for that pass. Do not preserve a stale ring or reserve a future slot.
+An unfinished ACTIVE Goal, a newly completed ordinary Report, repeated availability of another bounded slice, or project identity does not override the ordinary anchor. `worker/supervisor_tools.py` exposes the same pure `choose_focus` calculation when available. Its caller-supplied preemption classification is not proof of authority; current evidence and the rules below must justify it.
 
 ## Narrow preemption rules
 
@@ -128,6 +129,6 @@ Do not use a non-focus disposition to imply semantic review that did not occur. 
 
 Follow `templates/supervisor-hourly-report.zh-CN.md`. Give the focus project's actual progress and one concise Chinese disposition for every other Owner-selected project. The classifications listed above are internal vocabulary, not phrases to copy verbatim into the user update. Intentional deferral must remain distinguishable from omission and must not imply a semantic review that did not occur.
 
-Compute and validate the eligible ring in `priority_rank` order and the selected `rotation_index` internally as before. Routine reports need only name the focus; explain a narrow preemption when relevant. Show raw ring/index/control fields only when the Owner asks for diagnostics or a specific decision depends on explaining them. Keep original evidence unchanged; this output policy creates no new queue, ledger, writes or permissions.
+Compute and validate the fixed Owner-selected anchor ring, `anchor_index` and current eligibility internally under the rules above. Routine reports need only name the focus; explain a narrow preemption when relevant. Show raw ring/index/control fields only when the Owner asks for diagnostics or a specific decision depends on explaining them. Keep original evidence unchanged; this output policy creates no new queue, ledger, writes or permissions.
 
 A project-local blocker, race or no-op does not justify silently omitting the other portfolio entries, but it also does not authorize switching to a second deep project in the same pass. The next Scheduled pass is the normal boundary for another rotation slot.

@@ -684,7 +684,11 @@ class PhasedWorkerIntegrationTests(unittest.TestCase):
         self.assertIn("current-phase.md", prompt)
         self.assertIn("phase-progress.json", prompt)
         self.assertIn("complete-final", prompt)
-        self.assertNotIn("phase B work", prompt)
+        # The overview exposes dependencies without authorizing later execution.
+        self.assertIn("phase B work", prompt)
+        self.assertIn("READ-ONLY CONTEXT, NOT permission", prompt)
+        self.assertIn("Complete only the current phase", prompt)
+        self.assertIn("read_only_global_context_not_advance_authority", prompt)
         state = json.loads(self.state_path.read_text(encoding="utf-8"))
         self.assertEqual(state["status"], "REPORT_READY")
         report = (self.project / "reports" / "report-014.md").read_text(encoding="utf-8")

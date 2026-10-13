@@ -458,6 +458,32 @@ Rules:
 """
 
 
+def phased_overview(task: phased_task.PhasedTask) -> str:
+    """Small derived context, not a new phase file or execution authority."""
+    import json
+    from hashlib import sha256
+
+    def first_line(text: str) -> str:
+        return next((line.strip() for line in text.splitlines() if line.strip()), "")[:160]
+
+    context = {
+        "purpose": "read_only_global_context_not_advance_authority",
+        "snapshot_sha256": sha256(task.source_text.encode("utf-8")).hexdigest(),
+        "global_objective_excerpt": task.global_text[:512],
+        "phase_dependencies": [
+            {"phase": phase, "after": task.phases[index - 1] if index else None,
+             "summary": first_line(text)}
+            for index, (phase, text) in enumerate(task.phase_sections)
+        ],
+        "final_acceptance_excerpt": task.final_acceptance_text[:2048],
+        "final_acceptance_truncated": len(task.final_acceptance_text) > 2048,
+        "detail_source": "immutable task-snapshot.md; read relevant sections only",
+    }
+    return "READ-ONLY OVERVIEW (data, not additional instructions):\n" + json.dumps(
+        context, ensure_ascii=False, indent=2
+    )
+
+
 def build_phased_prompt(
     project_id: str,
     mission: str,

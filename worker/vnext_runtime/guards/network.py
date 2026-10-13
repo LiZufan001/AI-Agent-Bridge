@@ -69,7 +69,7 @@ def parse_probe_country(body: str) -> str | None:
         key, separator, value = raw_line.partition("=")
         if separator and key.strip().lower() in {"loc", "country", "country_code"}:
             candidate = value.strip().upper()
-            if len(candidate) == 2 and candidate.isalpha():
+            if re.fullmatch(r"[A-Z]{2}", candidate):
                 return candidate
     try:
         data = json.loads(body)
@@ -78,7 +78,7 @@ def parse_probe_country(body: str) -> str | None:
     if isinstance(data, dict):
         for key in ("country", "country_code", "loc"):
             candidate = str(data.get(key, "")).strip().upper()
-            if len(candidate) == 2 and candidate.isalpha():
+            if re.fullmatch(r"[A-Z]{2}", candidate):
                 return candidate
     return None
 

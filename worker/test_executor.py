@@ -403,7 +403,8 @@ command
             self.assertIn(str(helper.resolve()), prompt)
             self.assertIn("complete-final", prompt)
             self.assertIn("BRIDGE_FINAL_JSON", prompt)
-            self.assertNotIn("phase B work", prompt)
+            self.assertIn("phase B work", prompt)
+            self.assertIn("READ-ONLY CONTEXT, NOT permission", prompt)
             self.assertNotIn("phase C work", prompt)
 
 
@@ -432,7 +433,8 @@ class HardenedBoundaryTests(unittest.TestCase):
                 self.assertEqual(
                     phased.count("WORKER-OWNED LEASE / RESULT CONTRACT"), 1
                 )
-                self.assertNotIn("phase B work", phased)
+                self.assertIn("phase B work", phased)
+                self.assertIn("READ-ONLY CONTEXT, NOT permission", phased)
         finally:
             bw.build_prompt = original_prompt
             bw.codex_run = original_run
@@ -656,7 +658,8 @@ class WorkerExecutorIntegrationTests(unittest.TestCase):
         self.assertTrue(processed)
         self.assertEqual(len(calls), 1)
         self.assertIn("current-phase.md", calls[0]["prompt"])
-        self.assertNotIn("phase B work", calls[0]["prompt"])
+        self.assertIn("phase B work", calls[0]["prompt"])
+        self.assertIn("READ-ONLY CONTEXT, NOT permission", calls[0]["prompt"])
 
 
 

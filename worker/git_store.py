@@ -172,13 +172,82 @@ def run_process(
     return result
 
 
+_NETWORK_COMMANDS = frozenset({"fetch", "push", "pull", "ls-remote", "clone"})
+DEFAULT_NETWORK_TIMEOUT_SECONDS = 60.0
+
+
+class GitTransportError(WorkerError):
+    """Bounded transport failure; no remote address, credential or raw output."""
+
+
+def network_timeout_seconds() -> float:
+    import math
+    try:
+        value = float(os.environ.get("BRIDGE_GIT_NETWORK_TIMEOUT_SECONDS", "60"))
+    except (ValueError, TypeError):
+        raise GitTransportError("git_network_timeout_configuration_invalid") from None
+    if not math.isfinite(value) or not 1 <= value <= 300:
+        raise GitTransportError("git_network_timeout_configuration_invalid")
+    return value
+
+
+def _git_verb(args: tuple[str, ...]) -> str | None:
+    """Find the verb past supported global options without inspecting values."""
+    index = 0
+    while index < len(args):
+        arg = args[index]
+        if arg in {"-c", "-C", "--git-dir", "--work-tree", "--namespace"}:
+            index += 2
+            continue
+        if arg.startswith("-"):
+            index += 1
+            continue
+        return arg
+    return None
+
+
+def _network_git(repository: Path, args: tuple[str, ...], *, check: bool) -> subprocess.CompletedProcess[str]:
+    # Reuse the existing exact-process Job/group boundary. A timeout closes
+    # that invocation's tree, not arbitrary Git/Codex processes. This is a
+    # transport timeout only; no model task duration is changed.
+    from operator_maintenance import MaintenanceLimits, completed_process, run_maintenance_command
+    timeout = network_timeout_seconds()
+    verb = _git_verb(args) or "unknown"
+    evidence = run_maintenance_command(
+        ["git", *args], command_class="git-transport", cwd=repository,
+        limits=MaintenanceLimits(timeout_seconds=timeout, stdout_bytes=4 * 1024 * 1024,
+                                 stderr_bytes=64 * 1024),
+    )
+    result_class = evidence.get("result")
+    if (result_class not in {"SUCCESS", "CHILD_FAILED"}
+        or evidence.get("operator_owned_active_children")
+        or evidence.get("cleanup_error")):
+        # Push may have reached the remote: preserve the local commit and
+        # pending intent. Never enter a retry loop on an ambiguous timeout.
+        raise GitTransportError(
+            f"git_transport_{verb}_failed; result={result_class}; "
+            f"observed_at={evidence.get('completed_at')}; request_id=not_returned; "
+            "automatic_write_retry=prohibited"
+        )
+    if evidence["stdout"]["truncated"]:
+        raise GitTransportError("git_transport_output_incomplete")
+    result = completed_process(evidence)
+    if check and result.returncode != 0:
+        raise GitTransportError(
+            f"git_transport_{verb}_exit_{result.returncode}; "
+            f"observed_at={evidence.get('completed_at')}; request_id=not_returned"
+        )
+    return result
+
+
 def git(
     repository: Path,
     *args: str,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    """Run Git in a checkout, optionally returning a non-zero result."""
-
+    """Bound network Git including its child tree; leave local Git unchanged."""
+    if _git_verb(args) in _NETWORK_COMMANDS:
+        return _network_git(repository, args, check=check)
     return run_process(["git", *args], cwd=repository, check=check)
 
 
@@ -266,8 +335,13 @@ def read_blob(
     relative: str,
     *,
     max_bytes: int | None = None,
+    revision: str = "HEAD",
 ) -> bytes:
-    """Read one exact HEAD blob without text decoding or EOL conversion."""
+    """Read exact bytes from HEAD or one immutable full commit identity."""
+
+    import re
+    if revision != "HEAD" and (not isinstance(revision, str) or re.fullmatch(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}", revision) is None):
+        raise WorkerError("Git blob revision must be HEAD or a full immutable identity.")
 
     if (
         not isinstance(relative, str)
@@ -286,7 +360,7 @@ def read_blob(
         options["creationflags"] = subprocess.CREATE_NO_WINDOW
     try:
         result = subprocess.run(
-            ["git", "cat-file", "blob", f"HEAD:{relative}"],
+            ["git", "cat-file", "blob", f"{revision}:{relative}"],
             cwd=str(repository),
             capture_output=True,
             timeout=15,

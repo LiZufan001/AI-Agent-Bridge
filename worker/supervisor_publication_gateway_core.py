@@ -614,7 +614,9 @@ class SupervisorPublicationGateway:
             later = [item for item in paths if (item[0].name.casefold(), item[0].name) > after]
             earlier = [item for item in paths if (item[0].name.casefold(), item[0].name) <= after]
             paths = later + earlier
-        page = paths[:MAX_SCAN_ENTRIES]
+        # Advance only across a page that this poll can actually consider.
+        # A larger scan page would skip unconsumed slots on every rotation.
+        page = paths[:self.max_requests_per_poll]
         if page:
             last = page[-1][0].name
             self._scan_after = (last.casefold(), last)

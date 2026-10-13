@@ -31,7 +31,9 @@ Classify a blocker as autonomously satisfiable, Owner-only/external/time-depende
 
 PUBLICATION PREFLIGHT
 Immediately before preparing executable input, re-read exact heartbeat, durable Owner control, focus State/Report and required source/feedback/action evidence. Require `worker_available=true`, Owner execution mode `auto`, legal current state, justified unfinished work, no active conflict and no unresolved external effect making the action unsafe.
-When Worker availability cannot be confirmed, remain read-only: no executable bytes/ids, staged requests, Goal lifecycle, product mutations or reservations.
+
+WORKER AVAILABILITY:
+Compute availability from the exact configured heartbeat and current time. When availability cannot be confirmed, remain read-only: no executable bytes/ids, staged requests, Goal lifecycle, product mutations or reservations. A transport error does not prove that the user's computer is powered off.
 
 STAGED GENERATION CONTRACT:
 At fresh REPORT_READY generation G: `command_id=latest_command+1`, `based_on_report=latest_report`, `expected_generation = G + 1`. Use the supported deterministic preparer when actually available; otherwise follow the exact current transport contract. Envelope/header identity must agree and hash the exact final UTF-8 bytes. Submit one immutable `request-<id>.json` through the configured staged path only. Preparation is not authorization, publication, claim or execution. Do not fix stale plans by changing ids, rename old orphaned requests into execution, write canonical State/Command/Report directly, force/reset history or lower generation. Owner-resume uses its exact verified-evidence transition, not ordinary REPORT_READY assumptions.
