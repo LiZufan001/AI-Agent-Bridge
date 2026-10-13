@@ -67,6 +67,16 @@ class OperatorMaintenanceWindowsTests(unittest.TestCase):
         self.assertEqual(failed["exit_code"], 7)
         self.assert_zero(failed)
 
+    def test_owned_child_does_not_allocate_a_console(self):
+        result = self.run_python(
+            "import ctypes;"
+            "ctypes.windll.kernel32.GetConsoleWindow.restype=ctypes.c_void_p;"
+            "print('console=' + str(ctypes.windll.kernel32.GetConsoleWindow() or 0))"
+        )
+        self.assertTrue(result["success"])
+        self.assertIn("console=0", result["stdout"]["tail"])
+        self.assert_zero(result)
+
     def test_hang_times_out_and_descendant_is_reaped(self):
         source = (
             "import subprocess,sys,time;"

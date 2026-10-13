@@ -1164,6 +1164,8 @@ def _owned_shim(spec_path: Path) -> int:
         cwd=cwd,
         env=environment,
         close_fds=False if os.name == "nt" else True,
+        # The shim has no console; its child must also avoid allocating one.
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
     if child.stdin is not None:
         try:
